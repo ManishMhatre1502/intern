@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aatma Deepo Bhava | Internship & Innovation Platform</title>
+  <meta name="description" content="Be Your Own Light. We are not only providing Internships, but Future Innovators. Premier 1-month hands-on industry internships with weekly tasks and 5 authorized certificates.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Reference Demo Bar -->
+  <div class="demo-top-bar">
+    <div class="container demo-bar-content">
+      <span>
+        <i class="fa-solid fa-user-check"></i> <strong>Student Demo Login:</strong> <code>abc@gmail.com</code> | Pass: <code>1234</code> 
+        &nbsp;|&nbsp; 
+        <i class="fa-solid fa-shield-halved"></i> <strong>Admin Login:</strong> <code>admin@aatmadeepobhava.edu</code> | Pass: <code>admin123</code>
+      </span>
+      <div>
+        <button class="btn btn-xs btn-light mr-1" onclick="app.quickStudentLogin()">Quick Student Login</button>
+        <button class="btn btn-xs btn-light" onclick="app.quickAdminLogin()">Quick Admin Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar" id="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand-logo" onclick="app.showSection('home')">
+        <div class="logo-icon">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div class="logo-text">
+          <span class="brand-name">Aatma Deepo Bhava</span>
+          <span class="brand-sub">आत्मदीपो भव • Be Your Own Light</span>
+        </div>
+      </a>
+
+      <nav class="nav-links" id="nav-links">
+        <a href="#home" class="nav-link active" onclick="app.showSection('home')">Home</a>
+        <a href="#internships" class="nav-link" onclick="app.showSection('home', 'internships')">Internships</a>
+        <a href="#how-it-works" class="nav-link" onclick="app.showSection('home', 'how-it-works')">How it Works</a>
+        <a href="#benefits" class="nav-link" onclick="app.showSection('home', 'benefits')">Benefits</a>
+        <a href="#philosophy" class="nav-link" onclick="app.showSection('home', 'philosophy')">Philosophy</a>
+        <a href="#student-zone" class="nav-link" onclick="app.showSection('student-zone')">Student Portal</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn btn-light btn-sm" onclick="app.openStudentLoginModal()">
+          <i class="fa-solid fa-user-graduate"></i> Student Login
+        </button>
+        <button class="btn btn-purple btn-sm" onclick="app.openRegisterModal()">
+          <i class="fa-solid fa-bolt"></i> Register (₹1000)
+        </button>
+        <button class="mobile-toggle" aria-label="Open menu" onclick="app.toggleMobileMenu()">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main id="main-content">
+    
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view-section active">
+      
+      <!-- HERO SECTION WITH REAL STUDENT GIRL IMAGE -->
+      <section class="hero-section" id="home">
+        <div class="container hero-container">
+          <div class="hero-left-content">
+            <div class="hero-pill-badge">
+              <i class="fa-solid fa-sparkles"></i> Build Your Future • Aatma Deepo Bhava
+            </div>
+            
+            <h1 class="hero-title">
+              Find the Perfect <span class="text-purple">Internship</span> to Grow Your Skills
+            </h1>
+            
+            <p class="hero-subtext">
+              <strong>"We are not only providing Internships, but Future Innovators"</strong> — Embrace <em>Aatma Deepo Bhava (आत्मदीपो भव)</em>. Complete 4 weekly tasks, gain real industry experience, and get 5 authorized corporate certificates.
+            </p>
+
+            <!-- Search Bar Component -->
+            <div class="hero-search-bar">
+              <div class="search-input-group">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-keyword" placeholder="Search internships, roles or domains..." onkeyup="app.handleSearchInput(this.value)">
+              </div>
+              <div class="search-divider"></div>
+              <div class="search-select-group">
+                <i class="fa-solid fa-location-dot"></i>
+                <select id="search-location">
+                  <option value="all">Location: All (Remote)</option>
+                  <option value="remote">100% Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </div>
+              <div class="search-divider"></div>
+              <div class="search-select-group">
+                <i class="fa-solid fa-layer-group"></i>
+                <select id="search-category" onchange="app.filterDomains(this.value)">
+                  <option value="all">Category: All</option>
+                  <option value="web">Web Development</option>
+                  <option value="ai">AI & Data Science</option>
+                  <option value="cyber">Cybersecurity</option>
+                  <option value="app">App & Cloud</option>
+                </select>
+              </div>
+              <button class="btn btn-purple" onclick="app.executeSearch()">
+                <i class="fa-solid fa-magnifying-glass"></i> Search
+              </button>
+            </div>
+
+            <!-- Quick Tags -->
+            <div class="quick-tags">
+              <button type="button" class="tag-pill active" onclick="app.filterDomains('all')">Web Development</button>
+              <button type="button" class="tag-pill" onclick="app.filterDomains('web')">UI/UX Design</button>
+              <button type="button" class="tag-pill" onclick="app.filterDomains('ai')">Data Science</button>
+              <button type="button" class="tag-pill" onclick="app.filterDomains('cyber')">Cybersecurity</button>
+              <button type="button" class="tag-pill" onclick="app.filterDomains('ai')">AI & Machine Learning</button>
+              <button type="button" class="tag-pill" onclick="app.filterDomains('app')">Cloud & Mobile</button>
+            </div>
+          </div>
+
+          <!-- HERO RIGHT VISUAL WITH REAL STUDENT GIRL IMAGE & FLOATING CARDS -->
+          <div class="hero-right-visual-wrapper">
+            <figure class="hero-stage">
+              <img src="hero_student.png" width="1024" height="682" fetchpriority="high" alt="Smiling student holding a laptop, ready to start an internship" class="hero-student-real-img">
+            </figure>
+
+            <ul class="hero-feature-rail" aria-label="Internship highlights">
+              <li class="hfr-item">
+                <span class="ffc-icon icon-purple" aria-hidden="true"><i class="fa-solid fa-file-pen"></i></span>
+                <h5>Work on Real Tasks</h5>
+                <p>Complete 4 tasks during your internship</p>
+              </li>
+              <li class="hfr-item">
+                <span class="ffc-icon icon-orange" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>
+                <h5>20 Days Internship</h5>
+                <p>Start within 20 days after registration</p>
+              </li>
+              <li class="hfr-item">
+                <span class="ffc-icon icon-green" aria-hidden="true"><i class="fa-solid fa-award"></i></span>
+                <h5>Get Certificate</h5>
+                <p>Offer, completion &amp; appreciation letters</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS BAR STRIP -->
+      <section class="stats-strip-section">
+        <div class="container">
+          <div class="stats-bar-card reveal">
+            <div class="stat-box">
+              <div class="stat-circle-icon sc-purple"><i class="fa-solid fa-briefcase"></i></div>
+              <div class="stat-info">
+                <h3>500+</h3>
+                <p>Active Internships</p>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-circle-icon sc-blue"><i class="fa-solid fa-building"></i></div>
+              <div class="stat-info">
+                <h3>200+</h3>
+                <p>Hiring Partners</p>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-circle-icon sc-orange"><i class="fa-solid fa-user-graduate"></i></div>
+              <div class="stat-info">
+                <h3>10K+</h3>
+                <p>Students Placed</p>
+              </div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-circle-icon sc-green"><i class="fa-solid fa-star"></i></div>
+              <div class="stat-info">
+                <h3>4.8/5</h3>
+                <p>Student Satisfaction</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOW IT WORKS SECTION -->
+      <section class="section-padding" id="how-it-works">
+        <div class="container">
+          <div class="section-header reveal">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Get started in just a few simple steps</p>
+          </div>
+
+          <div class="how-steps-grid">
+            <div class="step-card reveal">
+              <div class="step-header">
+                <div class="step-num sn-1">1</div>
+              </div>
+              <h4>Register & Pay ₹1000</h4>
+              <p>Create your student profile, enter basic details, select domain or auto-assign, and complete ₹1000 fee.</p>
+            </div>
+
+            <div class="step-card reveal">
+              <div class="step-header">
+                <div class="step-num sn-2">2</div>
+              </div>
+              <h4>Start (10-20 Days)</h4>
+              <p>Program begins automatically 10 to 20 days post registration with assigned industry domain guide.</p>
+            </div>
+
+            <div class="step-card reveal">
+              <div class="step-header">
+                <div class="step-num sn-3">3</div>
+              </div>
+              <h4>Complete 4 Weekly Tasks</h4>
+              <p>Duration is 1 month. Complete 4 weekly evaluated tasks with line-by-line feedback from expert mentors.</p>
+            </div>
+
+            <div class="step-card reveal">
+              <div class="step-header">
+                <div class="step-num sn-4">4</div>
+              </div>
+              <h4>Get Recognized</h4>
+              <p>Receive Offer Letter, Completion Certificate, Attendance Letter, Authorization Letter, and Appreciation Letter.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURED INTERNSHIPS SECTION -->
+      <section class="section-padding bg-white" id="internships">
+        <div class="container">
+          <div class="featured-head">
+            <div>
+              <h2 class="section-title">Featured Internships</h2>
+              <p class="section-subtitle">Explore top opportunities with future-estimated industry topics</p>
+            </div>
+            <button class="btn btn-outline-purple btn-sm" onclick="app.scrollToSection('internships')">
+              View All Internships <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+
+          <div class="internships-grid" id="domains-grid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- PHILOSOPHY & BENEFITS SECTION -->
+      <section class="section-padding" id="philosophy">
+        <div class="container">
+          <div class="section-header text-center reveal">
+            <span class="badge badge-purple mb-2">Our Guiding Light</span>
+            <h2 class="section-title">The Philosophy of <span class="text-purple">"Aatma Deepo Bhava"</span></h2>
+            <p class="section-subtitle">Meaning <strong>"Be Your Own Light" (आत्मदीपो भव)</strong> — Turning passive students into self-reliant tech innovators</p>
+          </div>
+
+          <div class="philosophy-grid">
+            <div class="card-white p-4 text-center reveal" style="padding:2rem;">
+              <i class="fa-solid fa-sun text-purple" style="font-size:2rem; margin-bottom:1rem;"></i>
+              <h4>Self-Reliance & Mastery</h4>
+              <p class="text-sm text-muted mt-2">Build real projects, analyze weekly feedback, and take charge of your engineering career.</p>
+            </div>
+
+            <div class="card-white p-4 text-center reveal" style="padding:2rem;">
+              <i class="fa-solid fa-rocket text-purple" style="font-size:2rem; margin-bottom:1rem;"></i>
+              <h4>Future Innovators Program</h4>
+              <p class="text-sm text-muted mt-2">"We are not only providing Internships, but Future Innovators." Train to solve modern tech problems.</p>
+            </div>
+
+            <div class="card-white p-4 text-center reveal" style="padding:2rem;">
+              <i class="fa-solid fa-medal text-purple" style="font-size:2rem; margin-bottom:1rem;"></i>
+              <h4>Smart Student Recognition</h4>
+              <p class="text-sm text-muted mt-2">Hardworking and smart students receive dedicated Honor & Appreciation Letters for recruiters.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOTTOM PURPLE CALL TO ACTION BANNER -->
+      <section class="section-padding">
+        <div class="container">
+          <div class="bottom-cta-banner reveal">
+            <div>
+              <h2>Ready to Build Your Future?</h2>
+              <p>Join thousands of students gaining real-world experience and authorized certificates through Aatma Deepo Bhava.</p>
+            </div>
+            <button class="btn btn-light btn-lg" onclick="app.openRegisterModal()">
+              Create Your Account (₹1000) <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- END VIEW HOME -->
+
+
+    <!-- STUDENT ZONE VIEW -->
+    <div id="view-student-zone" class="view-section">
+      <section class="section-padding">
+        <div class="container">
+          <div class="student-header-banner-light">
+            <div>
+              <h2><i class="fa-solid fa-user-graduate text-purple"></i> Student Dashboard</h2>
+              <p class="text-muted">Manage your internship, view completed days progress, submit weekly tasks, and download certificates.</p>
+            </div>
+            <div>
+              <button class="btn btn-light btn-sm mr-2" onclick="app.openStudentLoginModal()">
+                <i class="fa-solid fa-right-to-bracket"></i> Login as Test Student
+              </button>
+              <button class="btn btn-purple btn-sm" onclick="app.openRegisterModal()">
+                <i class="fa-solid fa-plus-circle"></i> New Registration (₹1000)
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Profile Selector -->
+          <div class="card-white p-3 mt-4" style="padding:1.25rem;">
+            <label for="student-selector"><strong>Active Logged-in Profile:</strong></label>
+            <select id="student-selector" class="form-control" style="display:inline-block; width:auto; margin-left:0.5rem;" onchange="app.switchStudentProfile(this.value)">
+              <!-- Injected Dynamically -->
+            </select>
+          </div>
+
+          <!-- Dashboard Content -->
+          <div id="student-dashboard-content" class="mt-4">
+            <!-- Dynamic JS Injected Dashboard -->
+          </div>
+        </div>
+      </section>
+    </div><!-- END VIEW STUDENT ZONE -->
+
+  </main>
+
+  <!-- STUDENT LOGIN MODAL (abc@gmail.com / 1234) -->
+  <div class="modal-backdrop" id="modal-student-login">
+    <div class="modal-box modal-sm">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-graduate text-purple"></i> Student Login</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-student-login')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="p-3 mb-3" style="background:#f0f3ff; border-radius:8px; font-size:0.85rem;">
+          <p><strong>Test Student Credentials:</strong></p>
+          <p>Email: <code>abc@gmail.com</code></p>
+          <p>Password: <code>1234</code></p>
+          <button class="btn btn-xs btn-outline-purple mt-2" onclick="app.fillStudentForm()">Auto-fill Test Student</button>
+        </div>
+
+        <form id="form-student-login" onsubmit="app.handleStudentLogin(event)">
+          <div class="form-group">
+            <label>Student Email</label>
+            <input type="email" id="student-login-email" class="form-control" placeholder="abc@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="student-login-pass" class="form-control" placeholder="••••" required>
+          </div>
+          <button type="submit" class="btn btn-purple btn-block mt-3">
+            <i class="fa-solid fa-right-to-bracket"></i> Login to Student Portal
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRATION MODAL -->
+  <div class="modal-backdrop" id="modal-register">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-plus text-purple"></i> Student Registration (₹1000)</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-register')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-register" onsubmit="app.handleRegistrationSubmit(event)">
+          <div class="form-group">
+            <label>Full Name <span class="text-purple">*</span></label>
+            <input type="text" id="reg-name" class="form-control" placeholder="e.g. Rahul Sharma" required>
+          </div>
+
+          <div class="form-group">
+            <label>Email Address <span class="text-purple">*</span></label>
+            <input type="email" id="reg-email" class="form-control" placeholder="rahul@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label>Contact Phone <span class="text-purple">*</span></label>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="+91 9876543210" required>
+          </div>
+
+          <div class="form-group">
+            <label>Select Internship Domain <span class="text-purple">*</span></label>
+            <select id="reg-domain" class="form-control" required>
+              <option value="AUTO">-- Auto Assign Best Domain --</option>
+              <option value="Web Development Intern">Web Development Intern</option>
+              <option value="AI & Machine Learning Intern">AI & Machine Learning Intern</option>
+              <option value="Data Analyst Intern">Data Analyst Intern</option>
+              <option value="Cybersecurity Intern">Cybersecurity Intern</option>
+              <option value="UI/UX Design Intern">UI/UX Design Intern</option>
+              <option value="Cloud & DevOps Intern">Cloud & DevOps Intern</option>
+            </select>
+          </div>
+
+          <div class="p-3 mt-3" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="text-bold"><i class="fa-solid fa-indian-rupee-sign"></i> Registration Fee</span>
+              <span class="text-purple text-bold" style="font-size:1.3rem;">₹1000</span>
+            </div>
+            <p class="text-xs text-muted mt-1">Start date will be scheduled <strong>10 to 20 days</strong> post-registration.</p>
+            
+            <div class="mt-3 text-center p-3" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+              <i class="fa-solid fa-qrcode text-purple" style="font-size:3rem;"></i>
+              <p class="text-xs text-bold mt-1">UPI ID: <strong>aatmadeepo@upi</strong></p>
+              <span class="badge badge-purple mt-1">Scan & Pay ₹1000</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-purple btn-block btn-lg mt-4">
+            <i class="fa-solid fa-check-circle"></i> Complete Registration & Pay ₹1000
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div class="modal-backdrop" id="modal-admin-login">
+    <div class="modal-box modal-sm">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-user-shield text-purple"></i> Admin Login</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-admin-login')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="p-3 mb-3" style="background:#f0f3ff; border-radius:8px; font-size:0.85rem;">
+          <p><strong>Admin Reference Credentials:</strong></p>
+          <p>Email: <code>admin@aatmadeepobhava.edu</code></p>
+          <p>Password: <code>admin123</code></p>
+          <button class="btn btn-xs btn-outline-purple mt-2" onclick="app.fillAdminForm()">Auto-fill Credentials</button>
+        </div>
+
+        <form id="form-admin-login" onsubmit="app.handleAdminLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="admin-login-email" class="form-control" placeholder="admin@aatmadeepobhava.edu" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="admin-login-pass" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-purple btn-block mt-3">
+            <i class="fa-solid fa-right-to-bracket"></i> Login to Admin Console
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD OVERLAY -->
+  <div class="modal-backdrop modal-fullscreen" id="modal-admin-dashboard">
+    <div class="modal-box admin-full-box">
+      <div class="admin-top-nav">
+        <div class="atn-brand"><i class="fa-solid fa-user-shield"></i> Aatma Deepo Bhava — Admin Management Console</div>
+        <button class="btn btn-xs btn-light" onclick="app.adminLogout()">Logout</button>
+      </div>
+
+      <div class="admin-body-container">
+        <div class="admin-sidebar">
+          <button class="admin-tab-btn active" onclick="app.showAdminTab('students')"><i class="fa-solid fa-users"></i> Students Roster</button>
+          <button class="admin-tab-btn" onclick="app.showAdminTab('tasks')"><i class="fa-solid fa-tasks"></i> Task Reviews</button>
+          <button class="admin-tab-btn" onclick="app.showAdminTab('certs')"><i class="fa-solid fa-certificate"></i> Issue Certificates</button>
+        </div>
+
+        <div class="admin-main-view">
+          <div id="admin-tab-students" class="admin-tab-content active">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3>Registered Students</h3>
+              <input type="text" id="admin-search-student" class="form-control" style="width:250px;" placeholder="Search student..." onkeyup="app.filterAdminStudents()">
+            </div>
+            <div class="mt-3">
+              <table class="table admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email / Phone</th>
+                    <th>Domain</th>
+                    <th>Fee Status</th>
+                    <th>Start Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-students-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="admin-tab-tasks" class="admin-tab-content">
+            <h3>Weekly Task Evaluations</h3>
+            <div class="mt-3">
+              <table class="table admin-table">
+                <thead>
+                  <tr>
+                    <th>ID & Student</th>
+                    <th>Domain</th>
+                    <th>Task No</th>
+                    <th>Submission URL</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-tasks-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="admin-tab-certs" class="admin-tab-content">
+            <h3>Certificate Dispatcher Console</h3>
+            <div class="mt-3">
+              <table class="table admin-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Domain</th>
+                    <th>Offer</th>
+                    <th>Completion</th>
+                    <th>Attendance</th>
+                    <th>Authorization</th>
+                    <th>Appreciation</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-certs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE PREVIEW MODAL -->
+  <div class="modal-backdrop" id="modal-certificate-viewer">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3 id="cert-modal-title"><i class="fa-solid fa-certificate text-purple"></i> Official Document Preview</h3>
+        <div>
+          <button class="btn btn-sm btn-purple" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Download</button>
+          <button class="modal-close" onclick="app.closeModal('modal-certificate-viewer')">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body preview-cert-body" id="cert-render-area"></div>
+    </div>
+  </div>
+
+  <!-- TASK SUBMISSION MODAL -->
+  <div class="modal-backdrop" id="modal-submit-task">
+    <div class="modal-box modal-sm">
+      <div class="modal-header">
+        <h3>Submit Weekly Task</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-submit-task')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-task-submit" onsubmit="app.handleTaskSubmit(event)">
+          <input type="hidden" id="task-sub-student-id">
+          <input type="hidden" id="task-sub-number">
+          
+          <div class="form-group">
+            <label>Task Title</label>
+            <input type="text" id="task-sub-title-readonly" class="form-control" readonly>
+          </div>
+
+          <div class="form-group">
+            <label>Repository / Solution URL <span class="text-purple">*</span></label>
+            <input type="url" id="task-sub-link" class="form-control" placeholder="https://github.com/user/project" required>
+          </div>
+
+          <div class="form-group">
+            <label>Implementation Notes</label>
+            <textarea id="task-sub-notes" class="form-control" rows="3" placeholder="Briefly describe what you built..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-purple btn-block mt-3">Submit Task Solution</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:2rem;">
+      <div>
+        <div class="brand-logo mb-2">
+          <div class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="logo-text">
+            <span class="brand-name">Aatma Deepo Bhava</span>
+            <span class="brand-sub">आत्मदीपो भव</span>
+          </div>
+        </div>
+        <p class="text-sm text-muted">"We are not only providing Internships, but Future Innovators"</p>
+        <p class="text-xs text-muted mt-2">© 2026 Aatma Deepo Bhava. All Rights Reserved.</p>
+      </div>
+
+      <div>
+        <h5 class="text-bold mb-2">Demo Logins</h5>
+        <p class="text-xs text-muted">Student: <code>abc@gmail.com</code> / <code>1234</code></p>
+        <p class="text-xs text-muted">Admin: <code>admin@aatmadeepobhava.edu</code> / <code>admin123</code></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Custom JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+</html>
