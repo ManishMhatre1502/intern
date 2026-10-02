@@ -2,8 +2,16 @@
   "name": "aatma-deepo-bhava-internships",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
-    "setup-admin": "node scripts/setup-admin.js"
+    "setup-admin": "node scripts/setup-admin.js",
+    "migrate-json": "node scripts/migrate-json-to-mongodb.js",
+    "hash-admin-password": "node scripts/hash-admin-password.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.7.0"
   }
 }
