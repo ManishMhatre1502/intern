@@ -42,6 +42,14 @@ async function getCollections() {
           { email: 1 },
           { unique: true, name: 'accounts_email_unique' }
         ),
+        accounts.createIndex(
+          { id: 1 },
+          { unique: true, name: 'accounts_id_unique' }
+        ),
+        enrollments.createIndex(
+          { id: 1 },
+          { unique: true, name: 'enrollments_id_unique' }
+        ),
         enrollments.createIndex(
           { userId: 1, enrolledAt: -1 },
           { name: 'enrollments_user_recent' }
