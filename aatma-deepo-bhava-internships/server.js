@@ -318,7 +318,7 @@ async function handleApi(req, res, url) {
     }
     const { accounts } = await getCollections();
     const records = await accounts.find({}, { projection: { _id: 0, id: 1, name: 1, email: 1, mobile: 1, createdAt: 1 } })
-      .sort({ createdAt: -1 }).toArray();
+      .sort({ createdAt: 1 }).toArray();
     return sendJson(res, 200, { accounts: records });
   }
 
@@ -330,7 +330,7 @@ async function handleApi(req, res, url) {
     const { accounts, enrollments } = await getCollections();
     const [accountList, enrollmentList] = await Promise.all([
       accounts.find({}, { projection: { _id: 0, id: 1, name: 1, email: 1, mobile: 1, createdAt: 1 } })
-        .sort({ createdAt: -1 }).toArray(),
+        .sort({ createdAt: 1 }).toArray(),
       enrollments.find({}, { projection: { _id: 0, id: 1, userId: 1, title: 1, enrolledAt: 1, startDate: 1, endDate: 1, paymentStatus: 1 } })
         .sort({ enrolledAt: -1 }).toArray()
     ]);
