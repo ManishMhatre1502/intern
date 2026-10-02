@@ -4,13 +4,12 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { getCollections, findSession, removeSession, saveSession } = require('./storage');
+const { getCollections, findSession, removeSession, rateLimitExceeded, saveSession } = require('./storage');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const cookieName = 'adb_session';
-const sessionsByRateKey = new Map();
 const production = process.env.NODE_ENV === 'production';
 
 function loadLocalEnvironment() {
@@ -95,26 +94,6 @@ function sameOrigin(req) {
   return req.headers.origin === `${protocol}://${req.headers.host}`;
 }
 
-function rateLimited(req, key) {
-  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
-    || req.socket?.remoteAddress || 'unknown';
-  const id = `${key}:${ip}`;
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000;
-  let record = sessionsByRateKey.get(id);
-  if (!record || record.resetAt <= now) {
-    record = { count: 0, resetAt: now + windowMs };
-  }
-  record.count += 1;
-  sessionsByRateKey.set(id, record);
-  if (sessionsByRateKey.size > 5000) {
-    for (const [storedKey, value] of sessionsByRateKey) {
-      if (value.resetAt <= now) sessionsByRateKey.delete(storedKey);
-    }
-  }
-  return record.count > 10;
-}
-
 function passwordMatches(password, saltHex, expectedHex) {
   return new Promise((resolve, reject) => {
     crypto.scrypt(password, Buffer.from(saltHex, 'hex'), 64, (error, derived) => {
@@ -177,7 +156,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/auth/register') {
-    if (rateLimited(req, 'register')) {
+    if (await rateLimitExceeded(req, 'register')) {
       return sendJson(res, 429, { error: 'Too many attempts. Try again later.' });
     }
     const body = await readJson(req);
@@ -221,7 +200,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/auth/login') {
-    if (rateLimited(req, 'login')) {
+    if (await rateLimitExceeded(req, 'login')) {
       return sendJson(res, 429, { error: 'Too many attempts. Try again later.' });
     }
     const body = await readJson(req);
@@ -237,7 +216,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/auth/admin-login') {
-    if (rateLimited(req, 'admin-login')) {
+    if (await rateLimitExceeded(req, 'admin-login')) {
       return sendJson(res, 429, { error: 'Too many attempts. Try again later.' });
     }
     const configuredUsername = process.env.ADMIN_USERNAME;
