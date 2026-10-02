@@ -1,0 +1,43 @@
+<div class="modal-backdrop modal-fullscreen" id="modal-admin-dashboard">
+  <div class="modal-box admin-full-box">
+    <div class="admin-top-nav">
+      <div class="atn-brand"><i class="fa-solid fa-user-shield"></i> Aatma Deepo Bhava — Admin Management Console</div>
+      <button class="btn btn-xs btn-light" onclick="app.adminLogout()">Logout</button>
+    </div>
+    <div class="admin-body-container">
+      <div class="admin-sidebar">
+        <button class="admin-tab-btn active" onclick="app.showAdminTab('students')"><i class="fa-solid fa-users"></i> Registered Accounts</button>
+        <button class="admin-tab-btn" onclick="app.showAdminTab('tasks')"><i class="fa-solid fa-tasks"></i> Task Reviews</button>
+        <button class="admin-tab-btn" onclick="app.showAdminTab('certs')"><i class="fa-solid fa-certificate"></i> Issue Certificates</button>
+      </div>
+      <div class="admin-main-view">
+        <div id="admin-tab-students" class="admin-tab-content active">
+          <div class="admin-dashboard-heading">
+            <div><span>OVERVIEW</span><h3>Student registrations</h3><p>Track registered students and their internship participation.</p></div>
+            <input type="search" id="admin-search-student" class="form-control" placeholder="Search students..." onkeyup="app.filterAdminStudents()" aria-label="Search students">
+          </div>
+          <div class="admin-summary-grid" aria-label="Student overview">
+            <article class="admin-summary-card"><span>Total students</span><strong id="admin-total-students">0</strong><small>Registered accounts</small></article>
+            <article class="admin-summary-card is-blue"><span>Internship students</span><strong id="admin-internship-students">0</strong><small>At least one enrollment</small></article>
+            <article class="admin-summary-card is-muted"><span>Pending / not started</span><strong id="admin-not-started">0</strong><small>No internship enrollment</small></article>
+          </div>
+          <section class="admin-detail-panel" id="admin-student-details" hidden aria-live="polite"></section>
+          <div class="admin-student-table-wrap">
+            <table class="table admin-table">
+              <thead><tr><th>Student</th><th>Email</th><th>Mobile</th><th>Registered</th><th>Internship status</th><th></th></tr></thead>
+              <tbody id="admin-students-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="admin-tab-tasks" class="admin-tab-content">
+          <h3>Weekly Task Evaluations</h3>
+          <div class="mt-3"><table class="table admin-table"><thead><tr><th>ID &amp; Student</th><th>Domain</th><th>Task No</th><th>Submission URL</th><th>Status</th><th>Action</th></tr></thead><tbody id="admin-tasks-tbody"></tbody></table></div>
+        </div>
+        <div id="admin-tab-certs" class="admin-tab-content">
+          <h3>Certificate Dispatcher Console</h3>
+          <div class="mt-3"><table class="table admin-table"><thead><tr><th>Student</th><th>Domain</th><th>Offer</th><th>Completion</th><th>Attendance</th><th>Authorization</th><th>Appreciation</th></tr></thead><tbody id="admin-certs-tbody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

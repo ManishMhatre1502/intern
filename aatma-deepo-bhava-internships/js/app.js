@@ -2,17 +2,19 @@
    Aatma Deepo Bhava - Application Logic & Student Progress Tracker
    ========================================================================== */
 
-const APP_STORAGE_KEY = 'AATMA_DEEPO_BHAVA_DATA_V3';
+const APP_STORAGE_KEY = 'AATMA_DEEPO_BHAVA_DATA_V4';
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 
 const DEFAULT_DOMAINS = [
   {
     id: 'web-dev',
-    company: 'Google',
-    companyLogo: 'fa-brands fa-google',
-    logoColor: '#ea4335',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
     title: 'Web Development Intern',
+    image: 'assets/internship-web-development-photo.jpg',
     category: 'web',
-    location: 'Remote',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
     tags: ['Web Development', 'Frontend', 'HTML/CSS/JS'],
@@ -21,12 +23,13 @@ const DEFAULT_DOMAINS = [
   },
   {
     id: 'ui-ux',
-    company: 'Microsoft',
-    companyLogo: 'fa-brands fa-microsoft',
-    logoColor: '#00a4ef',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
     title: 'UI/UX Design Intern',
+    image: 'assets/internship-ui-ux-photo.jpg',
     category: 'web',
-    location: 'Remote',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
     tags: ['UI/UX Design', 'Figma', 'Product Strategy'],
@@ -35,12 +38,13 @@ const DEFAULT_DOMAINS = [
   },
   {
     id: 'data-analytics',
-    company: 'Amazon',
-    companyLogo: 'fa-brands fa-amazon',
-    logoColor: '#ff9900',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
     title: 'Data Analyst Intern',
+    image: 'assets/internship-data-analytics-photo.jpg',
     category: 'ai',
-    location: 'Remote',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
     tags: ['Data Science', 'Analytics', 'Pandas/SQL'],
@@ -49,12 +53,13 @@ const DEFAULT_DOMAINS = [
   },
   {
     id: 'cybersecurity',
-    company: 'Cisco',
-    companyLogo: 'fa-solid fa-shield-halved',
-    logoColor: '#049fd9',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
     title: 'Cybersecurity Intern',
+    image: 'assets/internship-cybersecurity-photo.jpg',
     category: 'cyber',
-    location: 'Remote',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
     tags: ['Cybersecurity', 'Network Security', 'OWASP'],
@@ -63,12 +68,13 @@ const DEFAULT_DOMAINS = [
   },
   {
     id: 'ai-ml',
-    company: 'Apple',
-    companyLogo: 'fa-brands fa-apple',
-    logoColor: '#555555',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
     title: 'AI & Machine Learning Intern',
+    image: 'assets/internship-ai-ml-photo.jpg',
     category: 'ai',
-    location: 'Remote',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
     tags: ['AI/ML', 'Python', 'Neural Networks'],
@@ -76,92 +82,209 @@ const DEFAULT_DOMAINS = [
     desc: 'Dive into Python, Neural Networks, Computer Vision, and Predictive Modeling with hands-on weekly machine learning algorithms.'
   },
   {
-    id: 'cloud-devops',
-    company: 'Meta',
-    companyLogo: 'fa-brands fa-meta',
-    logoColor: '#0668e1',
-    title: 'Cloud & DevOps Intern',
-    category: 'app',
-    location: 'Remote',
+    id: 'other-courses',
+    company: 'Aatma Deepo Bhava',
+    companyLogo: 'fa-solid fa-graduation-cap',
+    logoColor: '#ffffff',
+    title: 'Other Courses',
+    image: 'assets/internship-other-courses-photo.jpg',
+    category: 'others',
+    location: 'Online',
     duration: '1 Month',
     startTimeline: '10-20 Days post registration',
-    tags: ['Cloud', 'Docker', 'DevOps CI/CD'],
+    tags: ['Explore Courses', 'Career Skills', 'More Programs'],
     price: 1000,
-    desc: 'Deploy infrastructure using Docker containers, CI/CD pipelines, AWS services, and automated server management.'
-  }
-];
-
-// PRE-POPULATED TEST STUDENT CREDENTIALS: abc@gmail.com / 1234
-const INITIAL_STUDENTS = [
-  {
-    id: 'ADB-2026-9999',
-    name: 'Test Student',
-    email: 'abc@gmail.com',
-    password: '1234',
-    phone: '+91 98765 00000',
-    domain: 'Web Development Intern',
-    registrationDate: '2026-09-18',
-    startDate: '2026-09-18',
-    endDate: '2026-10-18',
-    totalDays: 30,
-    paymentStatus: 'Paid (₹1000)',
-    tasks: [
-      { num: 1, title: 'Requirement Analysis & Blueprint', status: 'Approved', link: 'https://github.com/abc/web-task1', notes: 'System architecture diagram created.' },
-      { num: 2, title: 'Core Module & DB Integration', status: 'Submitted', link: 'https://github.com/abc/web-task2', notes: 'API endpoints implemented.' },
-      { num: 3, title: 'Optimization & UI Polish', status: 'Pending', link: '', notes: '' },
-      { num: 4, title: 'Deployment & Final Video Demo', status: 'Pending', link: '', notes: '' }
-    ],
-    certs: { offer: true, completion: false, attendance: true, authorization: true, appreciation: false }
-  },
-  {
-    id: 'ADB-2026-2189',
-    name: 'Ananya Patel',
-    email: 'ananya.p@example.com',
-    password: '1234',
-    phone: '+91 98123 45678',
-    domain: 'AI & Machine Learning Intern',
-    registrationDate: '2026-09-10',
-    startDate: '2026-09-22',
-    endDate: '2026-10-22',
-    totalDays: 30,
-    paymentStatus: 'Paid (₹1000)',
-    tasks: [
-      { num: 1, title: 'Data Cleaning & Exploratory Analysis', status: 'Approved', link: 'https://github.com/ananya/ml-task1', notes: 'Explored dataset.' },
-      { num: 2, title: 'Model Training & Evaluation', status: 'Approved', link: 'https://github.com/ananya/ml-task2', notes: '94.2% accuracy achieved.' },
-      { num: 3, title: 'Hyperparameter Optimization', status: 'Submitted', link: 'https://github.com/ananya/ml-task3', notes: 'Applied Grid Search.' },
-      { num: 4, title: 'API Integration & Final Report', status: 'Pending', link: '', notes: '' }
-    ],
-    certs: { offer: true, completion: false, attendance: true, authorization: true, appreciation: true }
+    desc: 'Explore additional course and internship options designed to build practical skills and support your career goals.'
   }
 ];
 
 class AatmaDeepoApp {
   constructor() {
     this.data = this.loadData();
-    this.activeStudentId = this.data.students.length > 0 ? this.data.students[0].id : null;
+    this.activeStudentId = null;
     this.isAdminLoggedIn = false;
+    this.currentUser = null;
+    this.adminAccounts = [];
 
     this.init();
   }
 
-  init() {
+  async init() {
     this.renderDomains('all');
     this.renderStudentSelector();
     this.renderStudentDashboard();
+    try {
+      const response = await fetch('/api/auth/session', { credentials: 'same-origin' });
+      const payload = await response.json();
+      if (payload.user) await this.enterAuthenticatedSite(payload.user);
+    } catch {
+      this.showAuthMessage('The secure login service is unavailable. Please open this site through its server URL.', 'error');
+    }
   }
 
   loadData() {
-    const stored = localStorage.getItem(APP_STORAGE_KEY);
-    if (stored) {
-      try { return JSON.parse(stored); } catch (e) { console.error(e); }
-    }
-    const initial = { domains: DEFAULT_DOMAINS, students: INITIAL_STUDENTS };
-    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(initial));
-    return initial;
+    // Remove the previous demo database, which stored demo passwords in browser storage.
+    try { localStorage.removeItem('AATMA_DEEPO_BHAVA_DATA_V3'); } catch { /* Auth itself is server-backed. */ }
+    return { domains: DEFAULT_DOMAINS, students: [] };
   }
 
   saveData() {
-    localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(this.data));
+    if (this.currentUser?.role === 'user') {
+      localStorage.setItem(`${APP_STORAGE_KEY}_${this.currentUser.id}`, JSON.stringify(this.data.students));
+    }
+  }
+
+  showAuthMessage(message = '', type = 'error') {
+    const status = document.getElementById('auth-message');
+    if (!status) return;
+    status.textContent = message;
+    status.className = message ? `auth-message is-${type}` : 'auth-message';
+  }
+
+  showAuthMode(mode) {
+    const register = mode === 'register';
+    const admin = mode === 'admin';
+    document.getElementById('auth-user-panel').hidden = admin;
+    document.getElementById('auth-admin-panel').hidden = !admin;
+    document.getElementById('auth-login-form').hidden = register;
+    document.getElementById('auth-register-form').hidden = !register;
+    document.getElementById('auth-login-tab').classList.toggle('active', !register && !admin);
+    document.getElementById('auth-register-tab').classList.toggle('active', register);
+    document.getElementById('auth-login-tab').setAttribute('aria-selected', String(!register && !admin));
+    document.getElementById('auth-register-tab').setAttribute('aria-selected', String(register));
+    document.getElementById('auth-title').textContent = admin ? 'Admin Login' : register ? 'Create your account' : 'Welcome back';
+    document.getElementById('auth-description').textContent = admin
+      ? 'Sign in with your site owner configured credentials.'
+      : register ? 'Create your account to get started.' : 'Sign in to explore your internship opportunities.';
+    this.showAuthMessage('');
+  }
+
+  async postAuth(path, values) {
+    let response;
+    try {
+      response = await fetch(path, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values)
+      });
+    } catch {
+      throw new Error('Cannot reach the secure login server. Start the website with “npm start” and open its server URL.');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('The login API is unavailable at this address. Start the website with “npm start” and open http://localhost:3000.');
+    }
+
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('The login server returned an invalid response. Please restart it and try again.');
+    }
+    if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}). Please try again.`);
+    return payload;
+  }
+
+  async enterAuthenticatedSite(user) {
+    this.currentUser = user;
+    this.isAdminLoggedIn = user.role === 'admin';
+    if (user.role === 'user') {
+      try { this.data.students = JSON.parse(localStorage.getItem(`${APP_STORAGE_KEY}_${user.id}`) || '[]'); }
+      catch { this.data.students = []; }
+      this.activeStudentId = this.data.students[0]?.id || null;
+    } else {
+      this.data.students = [];
+      this.activeStudentId = null;
+    }
+    document.body.classList.add('authenticated');
+    this.renderStudentSelector();
+    this.renderStudentDashboard();
+    this.showSection('home');
+    if (this.isAdminLoggedIn) await this.openAdminDashboard();
+  }
+
+  async handleUserLogin(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const payload = await this.postAuth('/api/auth/login', {
+        email: document.getElementById('auth-login-email').value,
+        password: document.getElementById('auth-login-password').value
+      });
+      this.showAuthMessage('');
+      await this.enterAuthenticatedSite(payload.user);
+    } catch (error) {
+      this.showAuthMessage(error.message);
+    } finally {
+      submit.disabled = false;
+    }
+  }
+
+  async handleUserRegistration(e) {
+    e.preventDefault();
+    const password = document.getElementById('auth-register-password').value;
+    const confirmation = document.getElementById('auth-register-confirm').value;
+    if (password !== confirmation) return this.showAuthMessage('The passwords do not match.');
+    const form = e.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const payload = await this.postAuth('/api/auth/register', {
+        name: document.getElementById('auth-register-name').value,
+        email: document.getElementById('auth-register-email').value,
+        mobile: document.getElementById('auth-register-mobile').value,
+        password
+      });
+      form.reset();
+      this.showAuthMessage('');
+      await this.enterAuthenticatedSite(payload.user);
+    } catch (error) {
+      this.showAuthMessage(error.message);
+    } finally {
+      submit.disabled = false;
+    }
+  }
+
+  async handleAdminLogin(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const payload = await this.postAuth('/api/auth/admin-login', {
+        username: document.getElementById('auth-admin-username').value,
+        password: document.getElementById('auth-admin-password').value
+      });
+      form.reset();
+      this.showAuthMessage('');
+      await this.enterAuthenticatedSite(payload.user);
+    } catch (error) {
+      this.showAuthMessage(error.message);
+    } finally {
+      submit.disabled = false;
+    }
+  }
+
+  async logout() {
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); }
+    finally {
+      this.currentUser = null;
+      this.isAdminLoggedIn = false;
+      this.adminAccounts = [];
+      this.data.students = [];
+      this.activeStudentId = null;
+      document.body.classList.remove('authenticated');
+      const adminModal = document.getElementById('modal-admin-dashboard');
+      if (adminModal) adminModal.classList.remove('active');
+      const adminHost = document.getElementById('admin-dashboard-host');
+      if (adminHost) adminHost.replaceChildren();
+      this.showAuthMode('login');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   showSection(viewId, targetElementId = null) {
@@ -200,50 +323,32 @@ class AatmaDeepoApp {
     const grid = document.getElementById('domains-grid');
     if (!grid) return;
 
-    let filtered = category === 'all' 
-      ? this.data.domains 
-      : this.data.domains.filter(d => d.category === category);
+    const query = searchQuery.trim().toLowerCase();
+    const filtered = this.data.domains.filter(domain => {
+      const matchesCategory = category === 'all' || domain.category === category;
+      const matchesQuery = !query || domain.title.toLowerCase().includes(query) || domain.company.toLowerCase().includes(query) || domain.tags.some(tag => tag.toLowerCase().includes(query));
+      return matchesCategory && matchesQuery;
+    });
 
-    if (searchQuery) {
-      filtered = filtered.filter(d => 
-        d.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        d.company.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    grid.innerHTML = filtered.map(d => `
-      <div class="internship-card">
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
-            <div class="company-logo-box">
-              <i class="${d.companyLogo}" style="color: ${d.logoColor}"></i>
-            </div>
-            <button class="bookmark-btn" onclick="app.showToast('Bookmarked ${d.title}', 'info')">
-              <i class="fa-regular fa-bookmark"></i>
-            </button>
-          </div>
-
-          <h4 class="ic-title">${d.title}</h4>
-          <div class="ic-company">${d.company}</div>
-
-          <div style="display:flex; gap:1rem; font-size:0.8rem; color:#64748b; margin-bottom:1rem;">
-            <span><i class="fa-solid fa-location-dot"></i> ${d.location}</span>
-            <span><i class="fa-regular fa-clock"></i> ${d.duration}</span>
-          </div>
-
-          <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1.25rem;">
-            ${d.tags.map(t => `<span class="badge badge-purple" style="font-size:0.7rem;">${t}</span>`).join('')}
-          </div>
+    grid.innerHTML = filtered.length ? filtered.map(domain => `
+      <article class="internship-card">
+        <div class="internship-card-image">
+          <img src="${domain.image || DEFAULT_DOMAINS.find(item => item.id === domain.id)?.image || ''}" alt="${domain.title} internship illustration" loading="lazy">
+          <span class="internship-image-label">Featured opportunity</span>
         </div>
-
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:1rem; border-top:1px solid #e2e8f0;">
-          <span class="text-bold text-purple" style="font-size:1.1rem;">₹${d.price}</span>
-          <button class="btn btn-purple btn-sm" onclick="app.openRegisterModal('${d.title}')">
-            Apply Now
-          </button>
+        <div class="internship-card-content">
+          <div class="internship-card-top">
+            <div class="company-logo-box"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></div>
+            <button class="bookmark-btn" aria-label="Bookmark ${domain.title}" onclick="app.showToast('Bookmarked ${domain.title}', 'info')"><i class="fa-regular fa-bookmark" aria-hidden="true"></i></button>
+          </div>
+          <h3 class="ic-title">${domain.title}</h3>
+          <div class="ic-company">${domain.company}</div>
+          <div class="internship-meta"><span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${domain.location}</span><span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${domain.duration}</span></div>
+          <div class="internship-tags">${domain.tags.map(tag => `<span class="badge badge-purple">${tag}</span>`).join('')}</div>
         </div>
-      </div>
-    `).join('');
+        <div class="internship-card-footer"><span class="internship-price">₹${domain.price}</span><button class="btn btn-purple btn-sm" onclick="app.openRegisterModal('${domain.title}')">Apply Now</button></div>
+      </article>
+    `).join('') : '<p class="catalog-empty">No internships match your search. Try another keyword or category.</p>';
   }
 
   filterDomains(cat) {
@@ -267,55 +372,40 @@ class AatmaDeepoApp {
   }
 
   // ==========================================
-  // STUDENT LOGIN & REGISTRATION
+  // INTERNSHIP REGISTRATION
   // ==========================================
-  openStudentLoginModal() {
-    document.getElementById('modal-student-login').classList.add('active');
-  }
-
-  fillStudentForm() {
-    document.getElementById('student-login-email').value = 'abc@gmail.com';
-    document.getElementById('student-login-pass').value = '1234';
-  }
-
-  quickStudentLogin() {
-    this.fillStudentForm();
-    const testStudent = this.data.students.find(s => s.email === 'abc@gmail.com');
-    if (testStudent) {
-      this.activeStudentId = testStudent.id;
-      this.renderStudentSelector();
-      this.showSection('student-zone');
-      this.renderStudentDashboard();
-      this.showToast('Logged in as Test Student (abc@gmail.com)', 'success');
-    }
-  }
-
-  handleStudentLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('student-login-email').value.trim();
-    const pass = document.getElementById('student-login-pass').value.trim();
-
-    const student = this.data.students.find(s => s.email.toLowerCase() === email.toLowerCase());
-    if (student && (student.password === pass || pass === '1234')) {
-      this.activeStudentId = student.id;
-      this.closeModal('modal-student-login');
-      this.renderStudentSelector();
-      this.showSection('student-zone');
-      this.renderStudentDashboard();
-      this.showToast(`Welcome back, ${student.name}!`, 'success');
-    } else {
-      this.showToast('Invalid Email or Password! (Use abc@gmail.com / 1234)', 'error');
-    }
-  }
-
   openRegisterModal(preselectDomain = null) {
+    if (!this.currentUser) {
+      this.showAuthMode('register');
+      return;
+    }
+    if (this.currentUser.role !== 'user') return this.showToast('Student accounts can apply for internships.', 'info');
     const modal = document.getElementById('modal-register');
     if (!modal) return;
-    if (preselectDomain) {
-      const select = document.getElementById('reg-domain');
-      if (select) select.value = preselectDomain;
-    }
+    document.getElementById('reg-name').value = this.currentUser.name;
+    document.getElementById('reg-email').value = this.currentUser.email;
+    document.getElementById('reg-phone').value = this.currentUser.mobile;
+    const select = document.getElementById('reg-domain');
+    const courseInput = document.getElementById('reg-course');
+    if (select) select.value = preselectDomain || 'AUTO';
+    if (courseInput) courseInput.value = '';
+    this.updateRegistrationDomainFields();
     modal.classList.add('active');
+  }
+
+  updateRegistrationDomainFields() {
+    const domainGroup = document.getElementById('reg-domain-group');
+    const courseGroup = document.getElementById('reg-course-group');
+    const domainSelect = document.getElementById('reg-domain');
+    const courseInput = document.getElementById('reg-course');
+    const otherCourse = domainSelect && domainSelect.value === 'Other Courses';
+    if (domainGroup) domainGroup.style.display = otherCourse ? 'none' : '';
+    if (courseGroup) courseGroup.style.display = otherCourse ? '' : 'none';
+    if (domainSelect) domainSelect.required = !otherCourse;
+    if (courseInput) {
+      courseInput.required = Boolean(otherCourse);
+      courseInput.disabled = !otherCourse;
+    }
   }
 
   closeModal(modalId) {
@@ -323,34 +413,42 @@ class AatmaDeepoApp {
     if (modal) modal.classList.remove('active');
   }
 
-  handleRegistrationSubmit(e) {
+  async handleRegistrationSubmit(e) {
     e.preventDefault();
+    const form = e.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
 
     const name = document.getElementById('reg-name').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const phone = document.getElementById('reg-phone').value.trim();
     let domain = document.getElementById('reg-domain').value;
 
-    if (domain === 'AUTO') {
+    if (domain === 'Other Courses') {
+      domain = `Other Courses — ${document.getElementById('reg-course').value.trim()}`;
+    } else if (domain === 'AUTO') {
       domain = 'Web Development Intern';
     }
 
-    const today = new Date();
-    const startDateObj = new Date(today.getTime() + (14 * 24 * 60 * 60 * 1000));
-    const endDateObj = new Date(startDateObj.getTime() + (30 * 24 * 60 * 60 * 1000));
-
-    const formatDate = (d) => d.toISOString().split('T')[0];
+    let enrollment;
+    try {
+      const result = await this.postAuth('/api/internships/enroll', { title: domain });
+      enrollment = result.enrollment;
+    } catch (error) {
+      this.showToast(error.message, 'error');
+      submit.disabled = false;
+      return;
+    }
 
     const newStudent = {
-      id: `ADB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: enrollment.id,
       name: name,
       email: email,
-      password: '1234',
       phone: phone,
-      domain: domain,
-      registrationDate: formatDate(today),
-      startDate: formatDate(startDateObj),
-      endDate: formatDate(endDateObj),
+      domain: enrollment.title,
+      registrationDate: enrollment.enrolledAt.slice(0, 10),
+      startDate: enrollment.startDate,
+      endDate: enrollment.endDate,
       totalDays: 30,
       paymentStatus: 'Paid (₹1000)',
       tasks: [
@@ -370,6 +468,7 @@ class AatmaDeepoApp {
     this.showToast(`Registration Successful! Student ID: ${newStudent.id}`, 'success');
 
     document.getElementById('form-register').reset();
+    submit.disabled = false;
     this.renderStudentSelector();
     this.showSection('student-zone');
     this.renderStudentDashboard();
@@ -421,7 +520,9 @@ class AatmaDeepoApp {
 
     const student = this.data.students.find(s => s.id === this.activeStudentId);
     if (!student) {
-      container.innerHTML = `<div class="card-white text-center p-4">No student profile selected.</div>`;
+      container.innerHTML = this.currentUser?.role === 'user'
+        ? `<div class="card-white text-center p-4"><h3>Welcome, ${escapeHtml(this.currentUser.name)}.</h3><p class="text-muted mt-2">Your account is ready. Apply to an internship to start your student progress dashboard.</p><button class="btn btn-purple mt-3" onclick="app.openRegisterModal()">Explore internships</button></div>`
+        : `<div class="card-white text-center p-4">No internship profile is available yet.</div>`;
       return;
     }
 
@@ -660,47 +761,26 @@ class AatmaDeepoApp {
   // ADMIN PORTAL
   // ==========================================
   openAdminModal() {
-    if (this.isAdminLoggedIn) {
-      this.openAdminDashboard();
-    } else {
-      document.getElementById('modal-admin-login').classList.add('active');
+    if (this.isAdminLoggedIn) this.openAdminDashboard();
+    else this.showAuthMode('admin');
+  }
+
+  adminLogout() { return this.logout(); }
+
+  async openAdminDashboard() {
+    const response = await fetch('/api/admin/dashboard', { credentials: 'same-origin', cache: 'no-store' });
+    if (!response.ok) {
+      this.isAdminLoggedIn = false;
+      return this.logout();
     }
-  }
-
-  fillAdminForm() {
-    document.getElementById('admin-login-email').value = 'admin@aatmadeepobhava.edu';
-    document.getElementById('admin-login-pass').value = 'admin123';
-  }
-
-  quickAdminLogin() {
-    this.fillAdminForm();
-    this.isAdminLoggedIn = true;
-    this.openAdminDashboard();
-    this.showToast('Logged in as Administrator', 'success');
-  }
-
-  handleAdminLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('admin-login-email').value.trim();
-    const pass = document.getElementById('admin-login-pass').value.trim();
-
-    if (email === 'admin@aatmadeepobhava.edu' && pass === 'admin123') {
-      this.isAdminLoggedIn = true;
-      this.closeModal('modal-admin-login');
-      this.openAdminDashboard();
-      this.showToast('Admin Authentication Successful!', 'success');
-    } else {
-      this.showToast('Invalid Credentials!', 'error');
-    }
-  }
-
-  adminLogout() {
-    this.isAdminLoggedIn = false;
-    this.closeModal('modal-admin-dashboard');
-    this.showToast('Logged out of Admin Portal', 'info');
-  }
-
-  openAdminDashboard() {
+    const host = document.getElementById('admin-dashboard-host');
+    if (!host) return;
+    host.innerHTML = await response.text();
+    const accountsResponse = await fetch('/api/admin/dashboard-data', { credentials: 'same-origin', cache: 'no-store' });
+    if (!accountsResponse.ok) return this.logout();
+    const payload = await accountsResponse.json();
+    this.adminSummary = payload.summary || { totalStudents: 0, internshipStudents: 0, notStarted: 0 };
+    this.adminAccounts = payload.students || [];
     this.renderAdminStudents();
     this.renderAdminTasks();
     this.renderAdminCerts();
@@ -719,19 +799,41 @@ class AatmaDeepoApp {
     const tbody = document.getElementById('admin-students-tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = this.data.students.map(s => `
-      <tr>
-        <td><code>${s.id}</code></td>
-        <td><strong>${s.name}</strong></td>
-        <td>${s.phone}<br><span class="text-xs text-muted">${s.email}</span></td>
-        <td><span class="text-purple text-bold">${s.domain}</span></td>
-        <td><span class="badge badge-green">${s.paymentStatus}</span></td>
-        <td>${s.startDate}</td>
-        <td>
-          <button class="btn btn-xs btn-outline-purple" onclick="app.adminChangeStartDate('${s.id}')">Adjust Date</button>
-        </td>
+    const summary = this.adminSummary || { totalStudents: 0, internshipStudents: 0, notStarted: 0 };
+    document.getElementById('admin-total-students').textContent = summary.totalStudents;
+    document.getElementById('admin-internship-students').textContent = summary.internshipStudents;
+    document.getElementById('admin-not-started').textContent = summary.notStarted;
+
+    tbody.innerHTML = this.adminAccounts.length ? this.adminAccounts.map(s => `
+      <tr class="admin-student-row" tabindex="0" role="button" onclick="app.showAdminStudentDetails('${escapeHtml(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.showAdminStudentDetails('${escapeHtml(s.id)}')}">
+        <td><strong>${escapeHtml(s.name)}</strong><small>${escapeHtml(s.id)}</small></td>
+        <td>${escapeHtml(s.email)}</td>
+        <td>${escapeHtml(s.mobile)}</td>
+        <td>${new Date(s.createdAt).toLocaleDateString()}</td>
+        <td><span class="admin-status ${s.internships.length ? 'is-active' : 'is-pending'}">${s.internships.length ? `${s.internships.length} internship${s.internships.length === 1 ? '' : 's'}` : 'Not started'}</span></td>
+        <td><button class="admin-detail-link" type="button" onclick="event.stopPropagation();app.showAdminStudentDetails('${escapeHtml(s.id)}')">View details</button></td>
       </tr>
-    `).join('');
+    `).join('') : '<tr><td colspan="6" class="text-muted">No students have registered yet.</td></tr>';
+  }
+
+  showAdminStudentDetails(studentId) {
+    const student = this.adminAccounts.find(account => account.id === studentId);
+    const panel = document.getElementById('admin-student-details');
+    if (!student || !panel) return;
+    const internships = student.internships.length ? student.internships.map(internship => `
+      <div class="admin-enrollment-detail">
+        <div><strong>${escapeHtml(internship.title)}</strong><span class="admin-status ${internship.status === 'In Progress' ? 'is-active' : 'is-pending'}">${escapeHtml(internship.status)}</span></div>
+        <p>Enrolled ${new Date(internship.enrolledAt).toLocaleDateString()} · Starts ${new Date(`${internship.startDate}T00:00:00`).toLocaleDateString()} · Ends ${new Date(`${internship.endDate}T00:00:00`).toLocaleDateString()}</p>
+        <p>${escapeHtml(internship.paymentStatus)}</p>
+      </div>
+    `).join('') : '<p class="text-muted">This student has not enrolled in an internship yet.</p>';
+    panel.innerHTML = `
+      <div class="admin-detail-heading"><div><span>Student details</span><h4>${escapeHtml(student.name)}</h4></div><button type="button" class="admin-detail-close" aria-label="Close student details" onclick="document.getElementById('admin-student-details').hidden=true">×</button></div>
+      <dl class="admin-student-facts"><div><dt>Email</dt><dd>${escapeHtml(student.email)}</dd></div><div><dt>Mobile</dt><dd>${escapeHtml(student.mobile)}</dd></div><div><dt>Registered</dt><dd>${new Date(student.createdAt).toLocaleDateString()}</dd></div></dl>
+      <h5>Internship status and details</h5>${internships}
+    `;
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   filterAdminStudents() {
@@ -760,31 +862,7 @@ class AatmaDeepoApp {
   renderAdminTasks() {
     const tbody = document.getElementById('admin-tasks-tbody');
     if (!tbody) return;
-
-    let rowsHtml = '';
-    this.data.students.forEach(s => {
-      s.tasks.forEach(t => {
-        rowsHtml += `
-          <tr>
-            <td><code>${s.id}</code><br><strong>${s.name}</strong></td>
-            <td>${s.domain}</td>
-            <td>Week ${t.num}</td>
-            <td>${t.link ? `<a href="${t.link}" target="_blank" class="text-purple">${t.link}</a>` : '<span class="text-muted">No Link</span>'}</td>
-            <td><span class="badge ${t.status === 'Approved' ? 'badge-green' : t.status === 'Submitted' ? 'badge-blue' : 'badge-orange'}">${t.status}</span></td>
-            <td>
-              ${t.status === 'Submitted' 
-                ? `<button class="btn btn-xs btn-purple" onclick="app.adminApproveTask('${s.id}', ${t.num})">Approve & Grade A+</button>`
-                : t.status === 'Approved'
-                ? `<span class="text-xs text-green">Graded ✓</span>`
-                : `<span class="text-xs text-muted">Awaiting Submission</span>`
-              }
-            </td>
-          </tr>
-        `;
-      });
-    });
-
-    tbody.innerHTML = rowsHtml;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No internship task submissions yet.</td></tr>';
   }
 
   adminApproveTask(studentId, taskNum) {
@@ -810,18 +888,7 @@ class AatmaDeepoApp {
   renderAdminCerts() {
     const tbody = document.getElementById('admin-certs-tbody');
     if (!tbody) return;
-
-    tbody.innerHTML = this.data.students.map(s => `
-      <tr>
-        <td><code>${s.id}</code><br><strong>${s.name}</strong></td>
-        <td>${s.domain}</td>
-        <td><button class="btn btn-xs ${s.certs.offer ? 'btn-purple' : 'btn-light'}" onclick="app.toggleCertState('${s.id}', 'offer')">${s.certs.offer ? 'Granted ✓' : 'Grant'}</button></td>
-        <td><button class="btn btn-xs ${s.certs.completion ? 'btn-purple' : 'btn-light'}" onclick="app.toggleCertState('${s.id}', 'completion')">${s.certs.completion ? 'Granted ✓' : 'Grant'}</button></td>
-        <td><button class="btn btn-xs ${s.certs.attendance ? 'btn-purple' : 'btn-light'}" onclick="app.toggleCertState('${s.id}', 'attendance')">${s.certs.attendance ? 'Granted ✓' : 'Grant'}</button></td>
-        <td><button class="btn btn-xs ${s.certs.authorization ? 'btn-purple' : 'btn-light'}" onclick="app.toggleCertState('${s.id}', 'authorization')">${s.certs.authorization ? 'Granted ✓' : 'Grant'}</button></td>
-        <td><button class="btn btn-xs ${s.certs.appreciation ? 'btn-purple' : 'btn-light'}" onclick="app.toggleCertState('${s.id}', 'appreciation')">${s.certs.appreciation ? 'Granted ✓' : 'Grant Honor'}</button></td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Certificates will appear after internship enrollment.</td></tr>';
   }
 
   toggleCertState(studentId, certKey) {

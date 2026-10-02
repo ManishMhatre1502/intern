@@ -1,0 +1,9 @@
+{
+  "name": "aatma-deepo-bhava-internships",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "setup-admin": "node scripts/setup-admin.js"
+  }
+}
