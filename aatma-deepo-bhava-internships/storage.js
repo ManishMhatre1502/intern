@@ -14,7 +14,7 @@ function getMongoClient() {
 
   if (!clientPromise) {
     const client = new MongoClient(uri, {
-      maxPoolSize: Number(process.env.MONGODB_MAX_POOL_SIZE || 10),
+      maxPoolSize: 10,
       serverSelectionTimeoutMS: 10000
     });
     clientPromise = client.connect().catch(error => {
