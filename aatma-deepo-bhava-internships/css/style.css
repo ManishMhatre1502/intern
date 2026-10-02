@@ -1830,3 +1830,114 @@ body.authenticated #auth-gate { display: none; }
   .auth-brand .brand-sub { font-size: .68rem; white-space: normal; }
   .auth-card { border-radius: 19px; }
 }
+
+
+/* Mobile layout hardening: keep navigation, forms, cards, and dialogs inside the viewport. */
+@media (max-width: 760px) {
+  html { -webkit-text-size-adjust: 100%; }
+  .container { width: 100%; padding-inline: 1rem; }
+  .hero-container,
+  .dashboard-grid-light,
+  .how-steps-grid,
+  .internship-catalog,
+  .internships-grid,
+  .philosophy-grid { min-width: 0; }
+  .hero-title {
+    max-width: 15ch;
+    font-size: clamp(2.15rem, 9vw, 3.25rem);
+    line-height: 1.08;
+    overflow-wrap: break-word;
+  }
+  .hero-pill-badge { max-width: 100%; white-space: normal; line-height: 1.45; }
+  .section-title { overflow-wrap: anywhere; }
+  .nav-container { gap: .5rem; }
+  .brand-logo { min-width: 0; }
+  .brand-name { overflow-wrap: anywhere; }
+  .nav-actions { gap: .35rem; }
+  .nav-actions .btn-purple {
+    max-width: 122px;
+    padding: .4rem .55rem;
+    font-size: .72rem;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+  }
+  .mobile-toggle,
+  .profile-icon-button { min-width: 40px; min-height: 40px; }
+  .nav-links.active { z-index: 101; max-height: calc(100dvh - 72px); overflow-y: auto; }
+  .hero-search-bar,
+  .hero-search-bar > *,
+  .hero-search-bar input,
+  .hero-search-bar select { min-width: 0; max-width: 100%; }
+  .internship-card { min-width: 0; }
+  .internship-card-footer { grid-template-columns: minmax(0, 1fr) auto; gap: .6rem; }
+  .internship-card-footer .btn { min-width: 0; padding-inline: .7rem; }
+  .catalog-group,
+  .catalog-group summary,
+  .catalog-group-title { min-width: 0; }
+  .catalog-group-title { overflow-wrap: anywhere; }
+  .catalog-topic-list { min-width: 0; }
+  .admin-main-view,
+  .admin-dashboard-heading,
+  .admin-detail-panel { min-width: 0; }
+  .admin-student-table-wrap { max-width: 100%; -webkit-overflow-scrolling: touch; }
+  .modal-backdrop { padding: .75rem; }
+  .modal-box { width: 100%; max-width: 100%; max-height: calc(100dvh - 1.5rem); overflow-y: auto; }
+}
+
+@media (max-width: 640px) {
+  .hero-container { gap: 1.75rem; }
+  .hero-title { max-width: none; font-size: clamp(2rem, 9vw, 2.8rem); }
+  .hero-section { padding-block: 2.5rem 3.5rem; }
+  .hero-stage { width: 100%; aspect-ratio: 4 / 3; }
+  .hero-feature-rail { margin: 1rem 0 0; }
+  .stats-bar-card { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+  .stat-box { min-width: 0; }
+  .stat-info h3 { font-size: clamp(1.2rem, 6vw, 1.55rem); }
+  .catalog-topic-list { grid-template-columns: 1fr; margin-inline: .5rem; padding-inline: .75rem; }
+  .bottom-cta-banner { display: grid; gap: 1rem; align-items: start; padding: 1.4rem; }
+  .bottom-cta-banner .btn { width: 100%; }
+  .footer-grid { min-width: 0; }
+  .auth-gate { min-height: 100vh; min-height: 100svh; }
+  .auth-card { width: min(100%, 480px); }
+  .auth-form input { min-height: 48px; font-size: 16px; }
+  .modal-backdrop { align-items: flex-start; overflow-y: auto; }
+}
+
+@media (max-width: 480px) {
+  .container { padding-inline: .9rem; }
+  .nav-actions .btn-purple { display: none; }
+  .nav-container { justify-content: space-between; }
+  .brand-name { font-size: .96rem; }
+  .logo-icon { flex: 0 0 36px; width: 36px; height: 36px; }
+  .auth-gate {
+    align-content: start;
+    min-height: 100vh;
+    min-height: 100svh;
+    gap: 1rem;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .auth-brand { justify-content: flex-start; }
+  .auth-card { padding: 1.25rem; border-radius: 18px; }
+  .auth-heading h1 { font-size: clamp(1.9rem, 9vw, 2.35rem); }
+  .auth-heading p { font-size: .9rem; }
+  .auth-message:not(:empty) { overflow-wrap: anywhere; }
+  .modal-backdrop { padding: .5rem; }
+  .modal-box { max-height: calc(100dvh - 1rem); padding: 1rem; border-radius: 14px; }
+  .admin-top-nav { flex-wrap: wrap; }
+  .admin-top-nav .atn-brand { min-width: 0; overflow-wrap: anywhere; }
+  .admin-sidebar { scrollbar-width: thin; }
+  .admin-tab-btn { white-space: nowrap; }
+  .internship-card-footer { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (max-width: 360px) {
+  .container { padding-inline: .75rem; }
+  .auth-gate { padding-inline: .75rem; }
+  .auth-card { padding: 1rem; }
+  .nav-actions { gap: .2rem; }
+  .nav-actions .mobile-toggle,
+  .nav-actions .profile-icon-button { width: 36px; min-width: 36px; }
+  .internship-card-content { padding-inline: .85rem; }
+  .internship-card-footer { margin-inline: .85rem; }
+}
