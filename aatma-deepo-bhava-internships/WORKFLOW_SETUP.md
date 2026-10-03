@@ -16,7 +16,7 @@ Never commit live values or put server secrets in frontend variables. Vercel env
 
 ## Razorpay checkout
 
-The internship fee is currently INR 1,000, matching the existing site. The server creates each Razorpay order and records an enrollment as Pending. The browser checkout result is verified server-side using the Razorpay key secret. Only verified payments become Paid and trigger the offer letter email. The Razorpay webhook is a second, idempotent fulfillment path for captured payments when a browser closes before returning.
+The internship fee is currently INR 1,000, matching the existing site. The server creates each Razorpay order and records an enrollment as Pending. The browser checkout result is verified server-side using the Razorpay key secret. Only verified payments become Paid and trigger the offer letter email. The Razorpay webhook is a second, idempotent fulfillment path for captured payments when a browser closes before returning. Enable automatic payment capture in Razorpay; this implementation does not provide a manual capture step and only captured payments activate an enrollment.
 
 In Razorpay, configure a webhook at:
 
