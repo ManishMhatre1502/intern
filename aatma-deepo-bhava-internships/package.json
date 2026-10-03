@@ -12,6 +12,7 @@
     "hash-admin-password": "node scripts/hash-admin-password.js"
   },
   "dependencies": {
-    "mongodb": "^7.7.0"
+    "mongodb": "^7.7.0",
+    "pdfkit": "^0.17.2"
   }
 }
