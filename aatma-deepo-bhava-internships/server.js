@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { getCollections, findSession, removeSession, rateLimitExceeded, saveSession } = require('./storage');
+const { sendOfferLetter, sendCompletionDocuments } = require('./documents');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
@@ -73,16 +74,22 @@ async function getSession(req) {
   return session ? { token, ...session } : null;
 }
 
-async function readJson(req) {
-  let body = '';
+async function readRawBody(req) {
+  const chunks = [];
+  let size = 0;
   for await (const chunk of req) {
-    body += chunk;
-    if (body.length > 16_384) {
-      throw Object.assign(new Error('Request is too large.'), { status: 413 });
-    }
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += buffer.length;
+    if (size > 16_384) throw Object.assign(new Error('Request is too large.'), { status: 413 });
+    chunks.push(buffer);
   }
+  return Buffer.concat(chunks);
+}
+
+async function readJson(req) {
+  const raw = await readRawBody(req);
   try {
-    return JSON.parse(body || '{}');
+    return JSON.parse(raw.toString('utf8') || '{}');
   } catch {
     throw Object.assign(new Error('Invalid JSON.'), { status: 400 });
   }
@@ -124,7 +131,169 @@ function duplicateKey(error) {
   return error && error.code === 11000;
 }
 
+const INTERNSHIP_FEE_PAISE = 100000;
+const DOCUMENT_LOCK_MS = 10 * 60 * 1000;
+
+function timingSafeTextMatch(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
+}
+
+function hmacHex(secret, value) {
+  return crypto.createHmac('sha256', secret).update(value).digest('hex');
+}
+
+async function createRazorpayOrder(enrollment, account) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) throw Object.assign(new Error('Razorpay is not configured on the server.'), { status: 503 });
+  const response = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      amount: INTERNSHIP_FEE_PAISE,
+      currency: 'INR',
+      receipt: enrollment.id,
+      notes: { enrollmentId: enrollment.id, studentId: account.id }
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.id) {
+    console.error('Razorpay order creation failed with HTTP', response.status);
+    throw Object.assign(new Error('Could not start secure payment. Please try again.'), { status: 502 });
+  }
+  return { id: result.id, amount: result.amount, currency: result.currency };
+}
+
+
+async function verifyCapturedRazorpayPayment(paymentId, expectedOrderId) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret || !paymentId) throw Object.assign(new Error('Payment verification could not be completed.'), { status: 503 });
+  const url = 'https://api.razorpay.com/v1/payments/' + encodeURIComponent(paymentId);
+  const response = await fetch(url, {
+    headers: { Authorization: 'Basic ' + Buffer.from(keyId + ':' + keySecret).toString('base64') }
+  });
+  const payment = await response.json().catch(() => ({}));
+  if (!response.ok || payment.order_id !== expectedOrderId || payment.status !== 'captured' ||
+      payment.amount !== INTERNSHIP_FEE_PAISE || payment.currency !== 'INR') {
+    throw Object.assign(new Error('Payment is not captured for this enrollment yet.'), { status: 409 });
+  }
+  return payment;
+}
+
+async function issueOfferLetter(enrollmentId) {
+  const { accounts, enrollments } = await getCollections();
+  const now = new Date();
+  const lockExpiry = new Date(now.getTime() - DOCUMENT_LOCK_MS);
+  const claim = await enrollments.updateOne({
+    id: enrollmentId,
+    paymentStatus: 'Paid',
+    offerLetterSent: { $ne: true },
+    $or: [{ offerLetterSending: { $ne: true } }, { offerLetterSendingAt: { $lt: lockExpiry } }]
+  }, { $set: { offerLetterSending: true, offerLetterSendingAt: now } });
+  if (!claim.modifiedCount) return false;
+  try {
+    const enrollment = await enrollments.findOne({ id: enrollmentId });
+    const student = await accounts.findOne({ id: enrollment.userId });
+    if (!student) throw new Error('Student account not found for enrollment.');
+    await sendOfferLetter({ enrollment, student });
+    await enrollments.updateOne({ id: enrollmentId }, {
+      $set: { offerLetterSent: true, offerLetterSentAt: new Date() },
+      $unset: { offerLetterSending: '', offerLetterSendingAt: '' }
+    });
+    return true;
+  } catch (error) {
+    await enrollments.updateOne({ id: enrollmentId }, {
+      $unset: { offerLetterSending: '', offerLetterSendingAt: '' }
+    });
+    throw error;
+  }
+}
+
+async function markEnrollmentPaid(enrollment, paymentId) {
+  const { accounts, enrollments } = await getCollections();
+  if (enrollment.paymentStatus !== 'Paid') {
+    const paidAt = new Date();
+    const start = new Date(paidAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const dateOnly = date => date.toISOString().slice(0, 10);
+    await enrollments.updateOne(
+      { id: enrollment.id, paymentStatus: { $ne: 'Paid' } },
+      { $set: {
+        paymentStatus: 'Paid',
+        razorpayPaymentId: paymentId,
+        paidAt: paidAt.toISOString(),
+        startDate: dateOnly(start),
+        endDate: dateOnly(end)
+      } }
+    );
+  }
+  let updated = await enrollments.findOne({ id: enrollment.id });
+  if (updated && updated.paymentStatus === 'Paid' && updated.offerLetterSent !== true) {
+    try {
+      await issueOfferLetter(updated.id);
+    } catch (error) {
+      console.error('Offer letter delivery is pending:', error.message);
+    }
+    updated = await enrollments.findOne({ id: enrollment.id });
+  }
+  return updated;
+}
+
+async function issueCompletionDocuments(enrollmentId, appreciationRequested) {
+  const { accounts, enrollments, taskSubmissions } = await getCollections();
+  const now = new Date();
+  const lockExpiry = new Date(now.getTime() - DOCUMENT_LOCK_MS);
+  const claim = await enrollments.updateOne({
+    id: enrollmentId,
+    paymentStatus: 'Paid',
+    $or: [{ documentsSending: { $ne: true } }, { documentsSendingAt: { $lt: lockExpiry } }]
+  }, { $set: { documentsSending: true, documentsSendingAt: now } });
+  if (!claim.modifiedCount) throw Object.assign(new Error('Documents are already being prepared. Refresh and try again shortly.'), { status: 409 });
+
+  try {
+    const enrollment = await enrollments.findOne({ id: enrollmentId });
+    const approvedWeeks = await taskSubmissions.distinct('week', { enrollmentId, status: 'Approved' });
+    if (new Set(approvedWeeks).size < 4) {
+      throw Object.assign(new Error('All four weekly tasks must be approved before issuing completion documents.'), { status: 409 });
+    }
+    const student = await accounts.findOne({ id: enrollment.userId });
+    if (!student) throw new Error('Student account not found for enrollment.');
+    const includeCompletion = enrollment.completionCertificateSent !== true;
+    const includeAppreciation = appreciationRequested && enrollment.appreciationLetterSent !== true;
+    if (!includeCompletion && !includeAppreciation) {
+      return { completionCertificateSent: true, appreciationLetterSent: enrollment.appreciationLetterSent === true, alreadySent: true };
+    }
+    await sendCompletionDocuments({ enrollment, student, includeCompletion, includeAppreciation });
+    const set = {};
+    if (includeCompletion) {
+      set.completionCertificateSent = true;
+      set.completionCertificateSentAt = new Date();
+    }
+    if (includeAppreciation) {
+      set.appreciationLetterSent = true;
+      set.appreciationLetterSentAt = new Date();
+    }
+    await enrollments.updateOne({ id: enrollmentId }, { $set: set });
+    return {
+      completionCertificateSent: includeCompletion || enrollment.completionCertificateSent === true,
+      appreciationLetterSent: includeAppreciation || enrollment.appreciationLetterSent === true,
+      alreadySent: false
+    };
+  } finally {
+    await enrollments.updateOne({ id: enrollmentId }, {
+      $unset: { documentsSending: '', documentsSendingAt: '' }
+    });
+  }
+}
+
 function getEnrollmentStatus(enrollment, today = new Date().toISOString().slice(0, 10)) {
+  if (enrollment.paymentStatus !== 'Paid') return 'Payment pending';
   if (enrollment.endDate < today) return 'Completed';
   if (enrollment.startDate <= today) return 'In Progress';
   return 'Upcoming';
@@ -253,26 +422,184 @@ async function handleApi(req, res, url) {
     }
     const { accounts, enrollments } = await getCollections();
     const account = await accounts.findOne({ id: session.userId });
-    if (!account) {
-      return sendJson(res, 401, { error: 'Your student account could not be found. Please sign in again.' });
-    }
-    const enrolledAt = new Date();
-    const start = new Date(enrolledAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const dateOnly = date => date.toISOString().slice(0, 10);
+    if (!account) return sendJson(res, 401, { error: 'Your student account could not be found. Please sign in again.' });
+
+    const createdAt = new Date();
     const enrollment = {
-      id: `ADB-${enrolledAt.getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+      id: `ADB-${createdAt.getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
       userId: account.id,
       title,
-      enrolledAt: enrolledAt.toISOString(),
-      startDate: dateOnly(start),
-      endDate: dateOnly(end),
-      paymentStatus: 'Paid (₹1000)'
+      enrolledAt: createdAt.toISOString(),
+      startDate: null,
+      endDate: null,
+      paymentStatus: 'Pending',
+      amountPaise: INTERNSHIP_FEE_PAISE,
+      currency: 'INR',
+      offerLetterSent: false,
+      completionCertificateSent: false,
+      appreciationLetterSent: false
     };
+    const order = await createRazorpayOrder(enrollment, account);
+    enrollment.razorpayOrderId = order.id;
     await enrollments.insertOne(enrollment);
     return sendJson(res, 201, {
-      enrollment: { ...enrollment, status: getEnrollmentStatus(enrollment) }
+      enrollment,
+      checkout: {
+        keyId: process.env.RAZORPAY_KEY_ID,
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        name: process.env.ORGANIZATION_NAME || 'Aatma Deepo Bhava',
+        description: title,
+        prefill: { name: account.name, email: account.email, contact: account.mobile }
+      }
     });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/payments/verify') {
+    const session = await getSession(req);
+    if (!session || session.role !== 'user') return sendJson(res, 401, { error: 'Please sign in before confirming payment.' });
+    const body = await readJson(req);
+    const enrollmentId = String(body.enrollmentId || '');
+    const orderId = String(body.razorpay_order_id || '');
+    const paymentId = String(body.razorpay_payment_id || '');
+    const signature = String(body.razorpay_signature || '');
+    const { enrollments } = await getCollections();
+    const enrollment = await enrollments.findOne({ id: enrollmentId, userId: session.userId, razorpayOrderId: orderId });
+    if (!enrollment) return sendJson(res, 404, { error: 'Enrollment payment could not be found.' });
+    const expected = hmacHex(process.env.RAZORPAY_KEY_SECRET || '', `${orderId}|${paymentId}`);
+    if (!process.env.RAZORPAY_KEY_SECRET || !timingSafeTextMatch(expected, signature)) {
+      return sendJson(res, 400, { error: 'Payment verification failed. Contact support before retrying payment.' });
+    }
+    await verifyCapturedRazorpayPayment(paymentId, orderId);
+    const updated = await markEnrollmentPaid(enrollment, paymentId);
+    return sendJson(res, 200, {
+      enrollment: updated,
+      offerLetterSent: updated.offerLetterSent === true,
+      offerLetterPending: updated.offerLetterSent !== true
+    });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/webhooks/razorpay') {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) return sendJson(res, 503, { error: 'Payment webhook is not configured.' });
+    const raw = await readRawBody(req);
+    const signature = String(req.headers['x-razorpay-signature'] || '');
+    const expected = hmacHex(secret, raw);
+    if (!timingSafeTextMatch(expected, signature)) return sendJson(res, 401, { error: 'Invalid payment webhook signature.' });
+    let event;
+    try { event = JSON.parse(raw.toString('utf8')); } catch { return sendJson(res, 400, { error: 'Invalid webhook body.' }); }
+    let orderId = '';
+    let paymentId = '';
+    if (event.event === 'payment.captured') {
+      orderId = event.payload?.payment?.entity?.order_id || '';
+      paymentId = event.payload?.payment?.entity?.id || '';
+    } else if (event.event === 'order.paid') {
+      orderId = event.payload?.order?.entity?.id || '';
+      paymentId = event.payload?.payment?.entity?.id || '';
+    } else {
+      return sendJson(res, 200, { received: true, ignored: true });
+    }
+    if (!orderId) return sendJson(res, 400, { error: 'Payment webhook is missing an order ID.' });
+    const { enrollments } = await getCollections();
+    const enrollment = await enrollments.findOne({ razorpayOrderId: orderId });
+    if (!enrollment) return sendJson(res, 200, { received: true, ignored: true });
+    await markEnrollmentPaid(enrollment, paymentId || 'captured');
+    return sendJson(res, 200, { received: true });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/webhooks/google-forms') {
+    const secret = process.env.GOOGLE_FORMS_WEBHOOK_SECRET;
+    const authHeader = String(req.headers.authorization || '');
+    const presentedSecret = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
+    if (!secret || !timingSafeTextMatch(presentedSecret, secret)) {
+      return sendJson(res, 401, { error: 'Invalid task webhook authorization.' });
+    }
+    const body = await readJson(req);
+    const responseId = String(body.responseId || '').trim();
+    const studentEmail = String(body.studentEmail || '').trim().toLowerCase();
+    const enrollmentId = String(body.enrollmentId || '').trim();
+    const week = Number(body.week);
+    const submissionUrl = String(body.submissionUrl || '').trim();
+    const submittedAt = body.submittedAt ? new Date(body.submittedAt) : new Date();
+    if (!responseId || responseId.length > 180 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail) ||
+        !Number.isInteger(week) || week < 1 || week > 4 || !enrollmentId || enrollmentId.length > 80 ||
+        !Number.isFinite(submittedAt.getTime()) || submissionUrl.length > 2048) {
+      return sendJson(res, 400, { error: 'Provide a valid response ID, student email, enrollment ID, week 1-4, submission URL, and timestamp.' });
+    }
+    let parsedSubmission;
+    try { parsedSubmission = new URL(submissionUrl); } catch { return sendJson(res, 400, { error: 'Submission URL must be a valid HTTPS link.' }); }
+    if (parsedSubmission.protocol !== 'https:') return sendJson(res, 400, { error: 'Submission URL must be a valid HTTPS link.' });
+
+    const { accounts, enrollments, taskSubmissions } = await getCollections();
+    const account = await accounts.findOne({ email: studentEmail }, { projection: { id: 1 } });
+    const enrollment = account && await enrollments.findOne({ id: enrollmentId, userId: account.id, paymentStatus: 'Paid' });
+    if (!account || !enrollment) return sendJson(res, 404, { error: 'No paid enrollment matches that student and enrollment ID.' });
+    const existingResponse = await taskSubmissions.findOne({ responseId }, { projection: { id: 1, enrollmentId: 1 } });
+    if (existingResponse) return sendJson(res, 200, { accepted: true, duplicate: true });
+    const submission = {
+      id: `${enrollmentId}:week:${week}`,
+      responseId,
+      studentId: account.id,
+      studentEmail,
+      enrollmentId,
+      domain: enrollment.title,
+      week,
+      submissionUrl,
+      notes: String(body.notes || '').slice(0, 2000),
+      formId: String(body.formId || '').slice(0, 200),
+      submittedAt: submittedAt.toISOString(),
+      status: 'Pending',
+      feedback: '',
+      reviewedAt: null,
+      reviewedBy: null
+    };
+    try {
+      await taskSubmissions.updateOne({ enrollmentId, week }, { $set: submission }, { upsert: true });
+    } catch (error) {
+      if (!duplicateKey(error)) throw error;
+      return sendJson(res, 200, { accepted: true, duplicate: true });
+    }
+    return sendJson(res, 201, { accepted: true, week, enrollmentId });
+  }
+
+  const adminEnrollmentAction = url.pathname.split('/');
+  if (req.method === 'POST' && adminEnrollmentAction.length === 6 && adminEnrollmentAction[1] === 'api' && adminEnrollmentAction[2] === 'admin' && adminEnrollmentAction[3] === 'enrollments' && ['offer-letter', 'completion-certificate', 'appreciation-letter'].includes(adminEnrollmentAction[5])) {
+    const session = await getSession(req);
+    if (!session || session.role !== 'admin') return sendJson(res, 401, { error: 'Administrator access is required.' });
+    const enrollmentId = decodeURIComponent(adminEnrollmentAction[4]);
+    const action = adminEnrollmentAction[5];
+    const { enrollments } = await getCollections();
+    const enrollment = await enrollments.findOne({ id: enrollmentId });
+    if (!enrollment) return sendJson(res, 404, { error: 'Enrollment not found.' });
+    if (action === 'offer-letter') {
+      if (enrollment.paymentStatus !== 'Paid') return sendJson(res, 409, { error: 'An offer letter can only be sent after payment is verified.' });
+      if (enrollment.offerLetterSent) return sendJson(res, 200, { sent: true, alreadySent: true });
+      const sent = await issueOfferLetter(enrollmentId);
+      if (!sent) return sendJson(res, 409, { error: 'The offer letter is already being sent. Refresh shortly.' });
+      return sendJson(res, 200, { sent: true });
+    }
+    const result = await issueCompletionDocuments(enrollmentId, action === 'appreciation-letter');
+    return sendJson(res, 200, { sent: true, ...result });
+  }
+
+  const taskReviewRoute = url.pathname.split('/');
+  if (req.method === 'PATCH' && taskReviewRoute.length === 6 && taskReviewRoute[1] === 'api' && taskReviewRoute[2] === 'admin' && taskReviewRoute[3] === 'task-submissions' && taskReviewRoute[5] === 'review') {
+    const session = await getSession(req);
+    if (!session || session.role !== 'admin') return sendJson(res, 401, { error: 'Administrator access is required.' });
+    const body = await readJson(req);
+    const status = String(body.status || '');
+    const feedback = String(body.feedback || '').trim();
+    if (!['Approved', 'Needs changes'].includes(status) || feedback.length > 2000) {
+      return sendJson(res, 400, { error: 'Choose Approved or Needs changes and keep feedback under 2,000 characters.' });
+    }
+    const { taskSubmissions } = await getCollections();
+    const id = decodeURIComponent(taskReviewRoute[4]);
+    const result = await taskSubmissions.updateOne({ id }, {
+      $set: { status, feedback, reviewedAt: new Date().toISOString(), reviewedBy: session.username }
+    });
+    if (!result.matchedCount) return sendJson(res, 404, { error: 'Task submission not found.' });
+    return sendJson(res, 200, { updated: true });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/admin/dashboard') {
@@ -303,42 +630,64 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'GET' && url.pathname === '/api/admin/dashboard-data') {
     const session = await getSession(req);
-    if (!session || session.role !== 'admin') {
-      return sendJson(res, 401, { error: 'Administrator access is required.' });
-    }
-    const { accounts, enrollments } = await getCollections();
-    const [accountList, enrollmentList] = await Promise.all([
-      accounts.find({}, { projection: { _id: 0, id: 1, name: 1, email: 1, mobile: 1, createdAt: 1 } })
-        .sort({ createdAt: 1 }).toArray(),
-      enrollments.find({}, { projection: { _id: 0, id: 1, userId: 1, title: 1, enrolledAt: 1, startDate: 1, endDate: 1, paymentStatus: 1 } })
-        .sort({ enrolledAt: -1 }).toArray()
+    if (!session || session.role !== 'admin') return sendJson(res, 401, { error: 'Administrator access is required.' });
+    const { accounts, enrollments, taskSubmissions } = await getCollections();
+    const [accountList, enrollmentList, submissions] = await Promise.all([
+      accounts.find({}, { projection: { _id: 0, id: 1, name: 1, email: 1, mobile: 1, createdAt: 1 } }).sort({ createdAt: 1 }).toArray(),
+      enrollments.find({}, { projection: {
+        _id: 0, id: 1, userId: 1, title: 1, enrolledAt: 1, startDate: 1, endDate: 1,
+        paymentStatus: 1, paidAt: 1, offerLetterSent: 1, completionCertificateSent: 1,
+        appreciationLetterSent: 1
+      } }).sort({ enrolledAt: -1 }).toArray(),
+      taskSubmissions.find({}, { projection: {
+        _id: 0, id: 1, studentId: 1, studentEmail: 1, enrollmentId: 1, domain: 1,
+        week: 1, submissionUrl: 1, notes: 1, submittedAt: 1, status: 1, feedback: 1, reviewedAt: 1
+      } }).sort({ submittedAt: -1 }).toArray()
     ]);
-    const enrollmentByUser = new Map();
-    for (const enrollment of enrollmentList) {
-      const list = enrollmentByUser.get(enrollment.userId) || [];
-      list.push({
-        id: enrollment.id,
-        title: enrollment.title,
-        enrolledAt: enrollment.enrolledAt,
-        startDate: enrollment.startDate,
-        endDate: enrollment.endDate,
-        paymentStatus: enrollment.paymentStatus,
-        status: getEnrollmentStatus(enrollment)
-      });
-      enrollmentByUser.set(enrollment.userId, list);
+    const accountById = new Map(accountList.map(account => [account.id, account]));
+    const tasksByEnrollment = new Map();
+    for (const task of submissions) {
+      const list = tasksByEnrollment.get(task.enrollmentId) || [];
+      list.push(task);
+      tasksByEnrollment.set(task.enrollmentId, list);
+    }
+    const enrichedSubmissions = submissions.map(submission => ({
+      ...submission,
+      studentName: accountById.get(submission.studentId)?.name || 'Unknown student'
+    }));
+    const enrichedEnrollments = enrollmentList.map(enrollment => {
+      const student = accountById.get(enrollment.userId);
+      const tasks = tasksByEnrollment.get(enrollment.id) || [];
+      const approvedWeeks = [...new Set(tasks.filter(task => task.status === 'Approved').map(task => task.week))].sort();
+      return {
+        ...enrollment,
+        studentName: student?.name || 'Unknown student',
+        studentEmail: student?.email || '',
+        status: getEnrollmentStatus(enrollment),
+        approvedWeeks,
+        taskSubmissions: tasks
+      };
+    });
+    const enrollmentsByUser = new Map();
+    for (const enrollment of enrichedEnrollments) {
+      const list = enrollmentsByUser.get(enrollment.userId) || [];
+      list.push(enrollment);
+      enrollmentsByUser.set(enrollment.userId, list);
     }
     const students = accountList.map(account => ({
       ...safeAccount(account),
-      internships: enrollmentByUser.get(account.id) || []
+      internships: enrollmentsByUser.get(account.id) || []
     }));
-    const internshipStudents = students.filter(student => student.internships.length > 0).length;
+    const paidStudents = students.filter(student => student.internships.some(item => item.paymentStatus === 'Paid')).length;
     return sendJson(res, 200, {
       summary: {
         totalStudents: students.length,
-        internshipStudents,
-        notStarted: students.length - internshipStudents
+        internshipStudents: paidStudents,
+        notStarted: students.length - paidStudents
       },
-      students
+      students,
+      enrollments: enrichedEnrollments,
+      taskSubmissions: enrichedSubmissions
     });
   }
 

@@ -105,6 +105,8 @@ class AatmaDeepoApp {
     this.isAdminLoggedIn = false;
     this.currentUser = null;
     this.adminAccounts = [];
+    this.adminEnrollments = [];
+    this.adminTaskSubmissions = [];
     this.authReturnFocus = null;
 
     this.init();
@@ -505,17 +507,51 @@ class AatmaDeepoApp {
     if (modal) modal.classList.remove('active');
   }
 
+  async completeRazorpayCheckout(checkout, enrollmentId) {
+    if (typeof window.Razorpay !== 'function') throw new Error('Secure checkout did not load. Check your connection and try again.');
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = result => {
+        if (settled) return;
+        settled = true;
+        resolve(result);
+      };
+      const checkoutWindow = new window.Razorpay({
+        key: checkout.keyId,
+        amount: checkout.amount,
+        currency: checkout.currency,
+        name: checkout.name,
+        description: checkout.description,
+        order_id: checkout.orderId,
+        prefill: checkout.prefill,
+        theme: { color: '#245dcc' },
+        handler: async response => {
+          try {
+            const confirmation = await this.postAuth('/api/payments/verify', {
+              enrollmentId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            finish({ confirmation });
+          } catch (error) {
+            finish({ error: error.message });
+          }
+        },
+        modal: { ondismiss: () => finish({ cancelled: true }) }
+      });
+      checkoutWindow.on('payment.failed', () => finish({ error: 'Payment was not completed. Your enrollment remains pending; you can try again.' }));
+      checkoutWindow.open();
+    });
+  }
+
   async handleRegistrationSubmit(e) {
     e.preventDefault();
     const form = e.currentTarget;
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
 
-    const name = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const phone = document.getElementById('reg-phone').value.trim();
     let domain = document.getElementById('reg-domain').value;
-
     if (domain === 'Other Courses') {
       domain = `Other Courses — ${document.getElementById('reg-course').value.trim()}`;
     } else if (domain === 'AUTO') {
@@ -523,9 +559,18 @@ class AatmaDeepoApp {
     }
 
     let enrollment;
+    let confirmation;
     try {
-      const result = await this.postAuth('/api/internships/enroll', { title: domain });
-      enrollment = result.enrollment;
+      const order = await this.postAuth('/api/internships/enroll', { title: domain });
+      const result = await this.completeRazorpayCheckout(order.checkout, order.enrollment.id);
+      if (result.cancelled) {
+        this.showToast('Payment was cancelled. No paid enrollment or offer letter has been issued.', 'info');
+        submit.disabled = false;
+        return;
+      }
+      if (result.error) throw new Error(result.error);
+      confirmation = result.confirmation;
+      enrollment = confirmation.enrollment;
     } catch (error) {
       this.showToast(error.message, 'error');
       submit.disabled = false;
@@ -534,23 +579,28 @@ class AatmaDeepoApp {
 
     const newStudent = {
       id: enrollment.id,
-      name: name,
-      email: email,
-      phone: phone,
+      name: this.currentUser?.name || document.getElementById('reg-name').value.trim(),
+      email: this.currentUser?.email || document.getElementById('reg-email').value.trim(),
+      phone: this.currentUser?.mobile || document.getElementById('reg-phone').value.trim(),
       domain: enrollment.title,
       registrationDate: enrollment.enrolledAt.slice(0, 10),
       startDate: enrollment.startDate,
       endDate: enrollment.endDate,
       totalDays: 30,
-      paymentStatus: 'Paid (₹1000)',
+      paymentStatus: 'Paid (INR 1,000)',
       tasks: [
-        { num: 1, title: 'Requirement Analysis & Blueprint', status: 'Pending', link: '', notes: '' },
-        { num: 2, title: 'Core Module Implementation & DB Setup', status: 'Pending', link: '', notes: '' },
-        { num: 3, title: 'Optimization & Security Audit', status: 'Pending', link: '', notes: '' },
-        { num: 4, title: 'Deployment & Final Video Demonstration', status: 'Pending', link: '', notes: '' }
+        { num: 1, title: 'Week 1 task', status: 'Pending', link: '', notes: '' },
+        { num: 2, title: 'Week 2 task', status: 'Pending', link: '', notes: '' },
+        { num: 3, title: 'Week 3 task', status: 'Pending', link: '', notes: '' },
+        { num: 4, title: 'Week 4 task', status: 'Pending', link: '', notes: '' }
       ],
-      // Documents remain unavailable until the internship requirements are met.
-      certs: { offer: false, completion: false, attendance: false, authorization: false, appreciation: false }
+      certs: {
+        offer: confirmation.offerLetterSent === true,
+        completion: enrollment.completionCertificateSent === true,
+        attendance: false,
+        authorization: false,
+        appreciation: enrollment.appreciationLetterSent === true
+      }
     };
 
     this.data.students.unshift(newStudent);
@@ -558,7 +608,10 @@ class AatmaDeepoApp {
     this.saveData();
 
     this.closeModal('modal-register');
-    this.showToast(`Registration Successful! Student ID: ${newStudent.id}`, 'success');
+    this.showToast(`Payment confirmed! Enrollment ID: ${newStudent.id}`, 'success');
+    if (confirmation.offerLetterPending) {
+      this.showToast('Your offer letter is pending email setup. The administrator can resend it.', 'info');
+    }
 
     document.getElementById('form-register').reset();
     submit.disabled = false;
@@ -566,7 +619,6 @@ class AatmaDeepoApp {
     this.showSection('student-zone');
     this.renderStudentDashboard();
   }
-
   // ==========================================
   // COMPLETED DAYS CALCULATOR & DASHBOARD
   // ==========================================
@@ -875,17 +927,27 @@ class AatmaDeepoApp {
     const host = document.getElementById('admin-dashboard-host');
     if (!host) return;
     host.innerHTML = await response.text();
-    const accountsResponse = await fetch('/api/admin/dashboard-data', { credentials: 'same-origin', cache: 'no-store' });
-    if (!accountsResponse.ok) return this.logout();
-    const payload = await accountsResponse.json();
-    this.adminSummary = payload.summary || { totalStudents: 0, internshipStudents: 0, notStarted: 0 };
-    this.adminAccounts = payload.students || [];
-    this.renderAdminStudents();
-    this.renderAdminTasks();
-    this.renderAdminCerts();
+    try {
+      await this.refreshAdminDashboardData();
+    } catch {
+      this.showToast('Could not load admin workflow data. Please retry.', 'error');
+      return;
+    }
     document.getElementById('modal-admin-dashboard').classList.add('active');
   }
 
+  async refreshAdminDashboardData() {
+    const response = await fetch('/api/admin/dashboard-data', { credentials: 'same-origin', cache: 'no-store' });
+    if (!response.ok) throw new Error('Could not load admin data.');
+    const payload = await response.json();
+    this.adminSummary = payload.summary || { totalStudents: 0, internshipStudents: 0, notStarted: 0 };
+    this.adminAccounts = payload.students || [];
+    this.adminEnrollments = payload.enrollments || [];
+    this.adminTaskSubmissions = payload.taskSubmissions || [];
+    this.renderAdminStudents();
+    this.renderAdminTasks();
+    this.renderAdminCerts();
+  }
   showAdminTab(tabName) {
     document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
     if (event && event.currentTarget) event.currentTarget.classList.add('active');
@@ -903,16 +965,23 @@ class AatmaDeepoApp {
     document.getElementById('admin-internship-students').textContent = summary.internshipStudents;
     document.getElementById('admin-not-started').textContent = summary.notStarted;
 
-    tbody.innerHTML = this.adminAccounts.length ? this.adminAccounts.map(s => `
-      <tr class="admin-student-row" tabindex="0" role="button" onclick="app.showAdminStudentDetails('${escapeHtml(s.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.showAdminStudentDetails('${escapeHtml(s.id)}')}">
-        <td><strong>${escapeHtml(s.name)}</strong><small>${escapeHtml(s.id)}</small></td>
-        <td>${escapeHtml(s.email)}</td>
-        <td>${escapeHtml(s.mobile)}</td>
-        <td>${new Date(s.createdAt).toLocaleDateString()}</td>
-        <td><span class="admin-status ${s.internships.length ? 'is-active' : 'is-pending'}">${s.internships.length ? `${s.internships.length} internship${s.internships.length === 1 ? '' : 's'}` : 'Not started'}</span></td>
-        <td><button class="admin-detail-link" type="button" onclick="event.stopPropagation();app.showAdminStudentDetails('${escapeHtml(s.id)}')">View details</button></td>
-      </tr>
-    `).join('') : '<tr><td colspan="6" class="text-muted">No students have registered yet.</td></tr>';
+    tbody.innerHTML = this.adminAccounts.length ? this.adminAccounts.map(student => {
+      const paidEnrollments = student.internships.filter(item => item.paymentStatus === 'Paid');
+      const approved = paidEnrollments.reduce((sum, item) => sum + item.approvedWeeks.length, 0);
+      const total = paidEnrollments.length * 4;
+      const progress = paidEnrollments.length ? `${approved}/${total} weekly tasks approved` : 'No paid enrollment';
+      const offerSent = paidEnrollments.length > 0 && paidEnrollments.every(item => item.offerLetterSent);
+      return `
+        <tr class="admin-student-row" tabindex="0" role="button" onclick="app.showAdminStudentDetails('${escapeHtml(student.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.showAdminStudentDetails('${escapeHtml(student.id)}')}">
+          <td><strong>${escapeHtml(student.name)}</strong><small>${escapeHtml(student.id)}</small></td>
+          <td>${escapeHtml(student.email)}</td>
+          <td>${escapeHtml(student.mobile)}</td>
+          <td>${new Date(student.createdAt).toLocaleDateString()}</td>
+          <td><span class="admin-status ${approved ? 'is-active' : 'is-pending'}">${escapeHtml(progress)}</span></td>
+          <td><span class="admin-status ${offerSent ? 'is-active' : 'is-pending'}">${offerSent ? 'Sent' : 'Pending'}</span></td>
+          <td><button class="admin-detail-link" type="button" onclick="event.stopPropagation();app.showAdminStudentDetails('${escapeHtml(student.id)}')">View details</button></td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="7" class="text-muted">No students have registered yet.</td></tr>';
   }
 
   showAdminStudentDetails(studentId) {
@@ -922,7 +991,7 @@ class AatmaDeepoApp {
     const internships = student.internships.length ? student.internships.map(internship => `
       <div class="admin-enrollment-detail">
         <div><strong>${escapeHtml(internship.title)}</strong><span class="admin-status ${internship.status === 'In Progress' ? 'is-active' : 'is-pending'}">${escapeHtml(internship.status)}</span></div>
-        <p>Enrolled ${new Date(internship.enrolledAt).toLocaleDateString()} · Starts ${new Date(`${internship.startDate}T00:00:00`).toLocaleDateString()} · Ends ${new Date(`${internship.endDate}T00:00:00`).toLocaleDateString()}</p>
+        <p>Enrolled ${new Date(internship.enrolledAt).toLocaleDateString()} · ${internship.startDate ? `Starts ${new Date(`${internship.startDate}T00:00:00`).toLocaleDateString()} · Ends ${new Date(`${internship.endDate}T00:00:00`).toLocaleDateString()}` : 'Awaiting payment confirmation'}</p>
         <p>${escapeHtml(internship.paymentStatus)}</p>
       </div>
     `).join('') : '<p class="text-muted">This student has not enrolled in an internship yet.</p>';
@@ -961,7 +1030,22 @@ class AatmaDeepoApp {
   renderAdminTasks() {
     const tbody = document.getElementById('admin-tasks-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No internship task submissions yet.</td></tr>';
+    const submissions = this.adminTaskSubmissions || [];
+    tbody.innerHTML = submissions.length ? submissions.map(task => {
+      const safeId = escapeHtml(task.id);
+      const statusClass = task.status === 'Approved' ? 'is-active' : task.status === 'Needs changes' ? 'is-review' : 'is-pending';
+      return `
+        <tr>
+          <td><strong>${escapeHtml(task.studentName)}</strong><small>${escapeHtml(task.studentEmail)} · ${escapeHtml(task.enrollmentId)}</small></td>
+          <td>${escapeHtml(task.domain)}</td>
+          <td><span class="admin-status is-blue">Week ${Number(task.week)}</span></td>
+          <td><a href="${escapeHtml(task.submissionUrl)}" target="_blank" rel="noopener noreferrer">Open submission</a></td>
+          <td>${new Date(task.submittedAt).toLocaleString()}</td>
+          <td><span class="admin-status ${statusClass}">${escapeHtml(task.status)}</span></td>
+          <td><input class="form-control admin-task-feedback" id="admin-feedback-${safeId}" value="${escapeHtml(task.feedback)}" maxlength="2000" aria-label="Feedback for week ${Number(task.week)}"></td>
+          <td><button class="admin-action-button is-primary" type="button" onclick="app.adminReviewTask('${safeId}','Approved')">Approve</button><button class="admin-action-button" type="button" onclick="app.adminReviewTask('${safeId}','Needs changes')">Request changes</button></td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="8" class="text-muted">No weekly submissions have arrived yet. Configure the Google Forms webhook to receive submissions.</td></tr>';
   }
 
   adminApproveTask(studentId, taskNum) {
@@ -987,7 +1071,65 @@ class AatmaDeepoApp {
   renderAdminCerts() {
     const tbody = document.getElementById('admin-certs-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Certificates will appear after internship enrollment.</td></tr>';
+    const enrollments = this.adminEnrollments || [];
+    tbody.innerHTML = enrollments.length ? enrollments.map(enrollment => {
+      const id = escapeHtml(enrollment.id);
+      const eligible = enrollment.paymentStatus === 'Paid' && enrollment.approvedWeeks.length === 4;
+      const weeks = enrollment.paymentStatus === 'Paid' ? `${enrollment.approvedWeeks.length}/4 approved` : 'Payment pending';
+      const offerState = enrollment.offerLetterSent ? '<span class="admin-status is-active">Sent</span>' : '<span class="admin-status is-pending">Not sent</span>';
+      const completionState = enrollment.completionCertificateSent ? '<span class="admin-status is-active">Issued</span>' :
+        eligible ? `<button class="admin-action-button is-primary" type="button" onclick="app.adminIssueDocument('${id}','completion-certificate')">Issue Internship Certificate</button>` :
+        '<span class="admin-status is-pending">Awaiting 4 approvals</span>';
+      const appreciationState = enrollment.appreciationLetterSent ? '<span class="admin-status is-active">Granted</span>' :
+        eligible ? `<button class="admin-action-button is-success" type="button" onclick="app.adminIssueDocument('${id}','appreciation-letter')">Grant Appreciation Letter</button>` :
+        '<span class="admin-status is-pending">Awaiting 4 approvals</span>';
+      const offerAction = enrollment.offerLetterSent ? '' : enrollment.paymentStatus === 'Paid'
+        ? `<button class="admin-action-button" type="button" onclick="app.adminIssueDocument('${id}','offer-letter')">Send / retry offer</button>`
+        : '<span class="admin-status is-pending">After payment</span>';
+      return `
+        <tr>
+          <td><strong>${escapeHtml(enrollment.studentName)}</strong><small>${escapeHtml(enrollment.studentEmail)}</small></td>
+          <td>${escapeHtml(enrollment.title)}<small>${escapeHtml(enrollment.id)}</small></td>
+          <td><span class="admin-status ${eligible ? 'is-active' : 'is-pending'}">${escapeHtml(weeks)}</span></td>
+          <td>${offerState}</td>
+          <td>${completionState}</td>
+          <td>${appreciationState}</td>
+          <td>${offerAction || '<span class="text-muted">Documents sent</span>'}</td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="7" class="text-muted">No internship enrollments are available yet.</td></tr>';
+  }
+
+  async adminReviewTask(submissionId, status) {
+    const feedback = document.getElementById(`admin-feedback-${submissionId}`)?.value || '';
+    try {
+      const response = await fetch(`/api/admin/task-submissions/${encodeURIComponent(submissionId)}/review`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, feedback })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not update task review.');
+      await this.refreshAdminDashboardData();
+      this.showToast(`Week marked: ${status}.`, 'success');
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
+  }
+
+  async adminIssueDocument(enrollmentId, documentType) {
+    try {
+      const response = await fetch(`/api/admin/enrollments/${encodeURIComponent(enrollmentId)}/${documentType}`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not send the document.');
+      await this.refreshAdminDashboardData();
+      this.showToast(payload.alreadySent ? 'This document was already sent.' : 'Document email sent.', 'success');
+    } catch (error) {
+      this.showToast(error.message, 'error');
+    }
   }
 
   toggleCertState(studentId, certKey) {

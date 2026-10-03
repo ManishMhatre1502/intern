@@ -2079,3 +2079,24 @@ body:not(.authenticated) .footer-column a[href="#logout"] { display: none; }
   }
   .nav-actions { gap: .45rem; margin-left: auto; }
 }
+
+/* Internship benefit cards and admin task review tables. */
+.student-benefits-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.student-benefit-card { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: .65rem; padding: clamp(1.25rem, 2.5vw, 1.8rem); border: 1px solid #e2eaf7; border-radius: 18px; background: linear-gradient(150deg, #fff, #f8faff); box-shadow: 0 12px 28px rgba(25, 63, 120, .06); }
+.student-benefit-card > i { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 14px; background: #edf4ff; color: #245cc2; font-size: 1.2rem; }
+.student-benefit-card h3 { margin: .3rem 0 0; color: var(--text-dark); font-size: 1.05rem; line-height: 1.35; }
+.student-benefit-card p { margin: 0; color: var(--text-muted); font-size: .88rem; line-height: 1.65; }
+.admin-review-table-wrap { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e3eaf4; border-radius: 14px; background: #fff; }
+.admin-review-table-wrap .admin-table { min-width: 920px; margin: 0; }
+.admin-review-table-wrap .admin-table th { white-space: nowrap; }
+.admin-action-button { min-height: 38px; margin: .15rem; padding: .45rem .7rem; border: 1px solid #cbdcff; border-radius: 9px; background: #f3f7ff; color: #214e9c; font: 700 .75rem/1.2 var(--font-sans); cursor: pointer; }
+.admin-action-button:hover:not(:disabled) { background: #e4efff; }
+.admin-action-button:disabled { cursor: not-allowed; opacity: .55; }
+.admin-action-button.is-primary { border-color: #225dd0; background: #225dd0; color: #fff; }
+.admin-action-button.is-success { border-color: #b9e6cc; background: #effaf3; color: #17643a; }
+.admin-status.is-review { background: #fff4df; color: #87560a; }
+.admin-task-feedback { width: min(230px, 100%); min-height: 38px; }
+@media (max-width: 760px) {
+  .student-benefit-card { gap: .55rem; }
+  .admin-review-table-wrap .admin-table { min-width: 860px; }
+}
