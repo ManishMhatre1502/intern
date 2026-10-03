@@ -37,6 +37,7 @@ async function getCollections() {
       const enrollments = db.collection('enrollments');
       const sessions = db.collection('sessions');
       const rateLimits = db.collection('rate_limits');
+      const taskSubmissions = db.collection('task_submissions');
 
       await Promise.all([
         accounts.createIndex(
@@ -55,6 +56,22 @@ async function getCollections() {
           { userId: 1, enrolledAt: -1 },
           { name: 'enrollments_user_recent' }
         ),
+        enrollments.createIndex(
+          { razorpayOrderId: 1 },
+          { unique: true, sparse: true, name: 'enrollments_razorpay_order_unique' }
+        ),
+        taskSubmissions.createIndex(
+          { enrollmentId: 1, week: 1 },
+          { unique: true, name: 'task_submissions_enrollment_week_unique' }
+        ),
+        taskSubmissions.createIndex(
+          { responseId: 1 },
+          { unique: true, name: 'task_submissions_response_unique' }
+        ),
+        taskSubmissions.createIndex(
+          { submittedAt: -1 },
+          { name: 'task_submissions_recent' }
+        ),
         sessions.createIndex(
           { expiresAt: 1 },
           { expireAfterSeconds: 0, name: 'sessions_expiry' }
@@ -65,7 +82,7 @@ async function getCollections() {
         )
       ]);
 
-      return { accounts, enrollments, sessions, rateLimits };
+      return { accounts, enrollments, sessions, rateLimits, taskSubmissions };
     })().catch(error => {
       collectionsPromise = undefined;
       throw error;
