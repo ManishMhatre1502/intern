@@ -549,7 +549,8 @@ class AatmaDeepoApp {
         { num: 3, title: 'Optimization & Security Audit', status: 'Pending', link: '', notes: '' },
         { num: 4, title: 'Deployment & Final Video Demonstration', status: 'Pending', link: '', notes: '' }
       ],
-      certs: { offer: true, completion: false, attendance: true, authorization: true, appreciation: false }
+      // Documents remain unavailable until the internship requirements are met.
+      certs: { offer: false, completion: false, attendance: false, authorization: false, appreciation: false }
     };
 
     this.data.students.unshift(newStudent);
@@ -788,6 +789,12 @@ class AatmaDeepoApp {
   viewCertificate(certType) {
     const student = this.data.students.find(s => s.id === this.activeStudentId);
     if (!student) return;
+
+    // Keep the viewer protected even if called directly from the browser console.
+    if (!student.certs?.[certType]) {
+      this.showToast('This document is locked until you complete the internship requirements.', 'info');
+      return;
+    }
 
     const renderArea = document.getElementById('cert-render-area');
     const modalTitle = document.getElementById('cert-modal-title');
