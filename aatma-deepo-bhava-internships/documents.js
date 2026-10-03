@@ -128,23 +128,25 @@ async function sendOfferLetter({ enrollment, student }) {
   });
 }
 
-async function sendCompletionDocuments({ enrollment, student, includeAppreciation }) {
+async function sendCompletionDocuments({ enrollment, student, includeCompletion = true, includeAppreciation }) {
   const issuedAt = new Date();
   const attachments = [];
   const paragraphs = [
     `This certifies that ${student.name} has successfully completed the ${enrollment.title} internship program.`,
     'The student completed and received approval for all four weekly task submissions.'
   ];
-  attachments.push({
-    filename: `Internship-Completion-Certificate-${enrollment.id}.pdf`,
-    content: await createPdf({
-      title: 'Internship Completion Certificate',
-      studentName: student.name,
-      enrollment,
-      paragraphs,
-      issuedAt
-    })
-  });
+  if (includeCompletion) {
+    attachments.push({
+      filename: `Internship-Completion-Certificate-${enrollment.id}.pdf`,
+      content: await createPdf({
+        title: 'Internship Completion Certificate',
+        studentName: student.name,
+        enrollment,
+        paragraphs,
+        issuedAt
+      })
+    });
+  }
   if (includeAppreciation) {
     attachments.push({
       filename: `Appreciation-Letter-${enrollment.id}.pdf`,
@@ -160,9 +162,9 @@ async function sendCompletionDocuments({ enrollment, student, includeAppreciatio
       })
     });
   }
-  const documentNames = includeAppreciation
+  const documentNames = includeCompletion && includeAppreciation
     ? 'your Internship Completion Certificate and Appreciation Letter'
-    : 'your Internship Completion Certificate';
+    : includeAppreciation ? 'your Appreciation Letter' : 'your Internship Completion Certificate';
   await sendEmail({
     to: student.email,
     subject: `${includeAppreciation ? 'Appreciation and completion documents' : 'Internship Completion Certificate'} — ${enrollment.title}`,
