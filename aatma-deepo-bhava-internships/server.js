@@ -650,6 +650,10 @@ async function handleApi(req, res, url) {
       list.push(task);
       tasksByEnrollment.set(task.enrollmentId, list);
     }
+    const enrichedSubmissions = submissions.map(submission => ({
+      ...submission,
+      studentName: accountById.get(submission.studentId)?.name || 'Unknown student'
+    }));
     const enrichedEnrollments = enrollmentList.map(enrollment => {
       const student = accountById.get(enrollment.userId);
       const tasks = tasksByEnrollment.get(enrollment.id) || [];
@@ -682,7 +686,7 @@ async function handleApi(req, res, url) {
       },
       students,
       enrollments: enrichedEnrollments,
-      taskSubmissions: submissions
+      taskSubmissions: enrichedSubmissions
     });
   }
 
