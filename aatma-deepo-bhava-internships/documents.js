@@ -81,6 +81,7 @@ async function sendEmail({ to, subject, text, html, attachments }) {
       html,
       attachments: attachments.map(attachment => ({
         filename: attachment.filename,
+        content_type: 'application/pdf',
         content: attachment.content.toString('base64')
       }))
     })
