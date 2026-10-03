@@ -991,7 +991,7 @@ class AatmaDeepoApp {
     const internships = student.internships.length ? student.internships.map(internship => `
       <div class="admin-enrollment-detail">
         <div><strong>${escapeHtml(internship.title)}</strong><span class="admin-status ${internship.status === 'In Progress' ? 'is-active' : 'is-pending'}">${escapeHtml(internship.status)}</span></div>
-        <p>Enrolled ${new Date(internship.enrolledAt).toLocaleDateString()} · Starts ${new Date(`${internship.startDate}T00:00:00`).toLocaleDateString()} · Ends ${new Date(`${internship.endDate}T00:00:00`).toLocaleDateString()}</p>
+        <p>Enrolled ${new Date(internship.enrolledAt).toLocaleDateString()} · ${internship.startDate ? `Starts ${new Date(`${internship.startDate}T00:00:00`).toLocaleDateString()} · Ends ${new Date(`${internship.endDate}T00:00:00`).toLocaleDateString()}` : 'Awaiting payment confirmation'}</p>
         <p>${escapeHtml(internship.paymentStatus)}</p>
       </div>
     `).join('') : '<p class="text-muted">This student has not enrolled in an internship yet.</p>';
@@ -1036,7 +1036,7 @@ class AatmaDeepoApp {
       const statusClass = task.status === 'Approved' ? 'is-active' : task.status === 'Needs changes' ? 'is-review' : 'is-pending';
       return `
         <tr>
-          <td><strong>${escapeHtml(task.studentEmail)}</strong><small>${escapeHtml(task.enrollmentId)}</small></td>
+          <td><strong>${escapeHtml(task.studentName)}</strong><small>${escapeHtml(task.studentEmail)} · ${escapeHtml(task.enrollmentId)}</small></td>
           <td>${escapeHtml(task.domain)}</td>
           <td><span class="admin-status is-blue">Week ${Number(task.week)}</span></td>
           <td><a href="${escapeHtml(task.submissionUrl)}" target="_blank" rel="noopener noreferrer">Open submission</a></td>
