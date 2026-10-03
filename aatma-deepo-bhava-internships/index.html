@@ -15,16 +15,17 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/style.css?v=mobile-responsive-20261002">
+  <link rel="stylesheet" href="css/style.css?v=auth-modal-responsive-20261003b">
 </head>
 <body>
 
-  <section class="auth-gate" id="auth-gate" aria-labelledby="auth-title">
+  <section class="auth-gate" id="auth-gate" aria-labelledby="auth-title" aria-hidden="true" hidden>
     <a href="#auth-gate" class="brand-logo auth-brand">
       <span class="logo-icon"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></span>
       <span class="logo-text"><span class="brand-name">Aatma Deepo Bhava</span><span class="brand-sub">आत्मदीपो भव • Be Your Own Light</span></span>
     </a>
-    <div class="auth-card">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title" aria-describedby="auth-description">
+      <button class="auth-close-btn" type="button" aria-label="Close authentication dialog" onclick="app.closeAuthModal()"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       <div class="auth-heading">
         <span class="auth-eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> YOUR NEXT STEP STARTS HERE</span>
         <h1 id="auth-title">Welcome back</h1>
@@ -55,7 +56,7 @@
           <input id="auth-register-password" type="password" autocomplete="new-password" minlength="10" required>
           <label for="auth-register-confirm">Confirm Password</label>
           <input id="auth-register-confirm" type="password" autocomplete="new-password" minlength="10" required>
-          <button class="btn btn-purple btn-block btn-lg auth-submit" type="submit">Create Account <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+          <button class="btn btn-purple btn-block btn-lg auth-submit" type="submit">Start Your Journey <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
         </form>
         <button class="auth-admin-link" type="button" onclick="app.showAuthMode('admin')">Admin Login</button>
       </div>
@@ -94,10 +95,11 @@
       </nav>
 
       <div class="nav-actions">
-        <button class="btn btn-purple btn-sm" onclick="app.openRegisterModal()">
-          <i class="fa-solid fa-bolt"></i> Register (₹1000)
+        <button class="btn btn-outline-purple btn-sm auth-nav-login" type="button" onclick="app.showAuthMode('login')">Login</button>
+        <button class="btn btn-purple btn-sm auth-nav-register" type="button" onclick="app.openRegisterModal()">
+          <i class="fa-solid fa-bolt" aria-hidden="true"></i> Register Now
         </button>
-        <button class="mobile-toggle" aria-label="Open menu" onclick="app.toggleMobileMenu()">
+        <button class="mobile-toggle" type="button" aria-label="Open menu" aria-expanded="false" onclick="app.toggleMobileMenu()">
           <i class="fa-solid fa-bars"></i>
         </button>
         <button class="profile-icon-button" type="button" aria-label="Log out" title="Log out" onclick="app.logout()">
@@ -491,7 +493,7 @@
         <nav class="footer-column" aria-label="Student resources">
           <h2>For students</h2>
           <a href="#student-zone" onclick="app.showSection('student-zone')">Student portal</a>
-          <a href="#register" onclick="app.openRegisterModal()">Apply for an internship</a>
+          <a href="#register" onclick="app.applyForInternship()">Apply for an internship</a>
           <a href="#logout" onclick="app.logout()">Sign out</a>
         </nav>
       </div>
