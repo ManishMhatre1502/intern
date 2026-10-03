@@ -2002,7 +2002,7 @@ body.authenticated #auth-gate { display: none; }
 }
 .auth-modal-open { overflow: hidden; }
 .nav-actions .auth-nav-login,
-.nav-actions .auth-nav-register { min-height: 42px; }
+.nav-actions .auth-nav-register { display: inline-flex; min-height: 42px; }
 body:not(.authenticated) .profile-icon-button { display: none !important; }
 body.authenticated .auth-nav-login,
 body.authenticated .auth-nav-register { display: none !important; }
@@ -2020,7 +2020,7 @@ body:not(.authenticated) .footer-column a[href="#logout"] { display: none; }
   .auth-close-btn { top: .55rem; right: .55rem; width: 42px; height: 42px; }
   .auth-heading { padding-right: 2rem; }
   .nav-actions .auth-nav-login,
-  .nav-actions .auth-nav-register { min-height: 44px; }
+  .nav-actions .auth-nav-register { display: inline-flex; min-height: 44px; }
 }
 
 @media (max-width: 360px) {
