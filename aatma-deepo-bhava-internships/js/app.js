@@ -9,7 +9,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'web-dev',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'Web Development Intern',
     image: 'assets/internship-web-development-photo.jpg',
@@ -24,7 +24,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'ui-ux',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'UI/UX Design Intern',
     image: 'assets/internship-ui-ux-photo.jpg',
@@ -39,7 +39,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'data-analytics',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'Data Analyst Intern',
     image: 'assets/internship-data-analytics-photo.jpg',
@@ -54,7 +54,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'cybersecurity',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'Cybersecurity Intern',
     image: 'assets/internship-cybersecurity-photo.jpg',
@@ -69,7 +69,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'ai-ml',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'AI & Machine Learning Intern',
     image: 'assets/internship-ai-ml-photo.jpg',
@@ -84,7 +84,7 @@ const DEFAULT_DOMAINS = [
   {
     id: 'other-courses',
     company: 'Aatma Deepo Bhava',
-    companyLogo: 'fa-solid fa-graduation-cap',
+    companyLogo: 'assets/aatma-deepo-bhava-logo.png',
     logoColor: '#ffffff',
     title: 'Other Courses',
     image: 'assets/internship-other-courses-photo.jpg',
@@ -424,7 +424,7 @@ class AatmaDeepoApp {
         </div>
         <div class="internship-card-content">
           <div class="internship-card-top">
-            <div class="company-logo-box"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i></div>
+            <div class="company-logo-box"><img src="${domain.companyLogo || 'assets/aatma-deepo-bhava-logo.png'}" alt="Aatma Deepo Bhava logo" loading="lazy"></div>
             <button class="bookmark-btn" aria-label="Bookmark ${domain.title}" onclick="app.showToast('Bookmarked ${domain.title}', 'info')"><i class="fa-regular fa-bookmark" aria-hidden="true"></i></button>
           </div>
           <h3 class="ic-title">${domain.title}</h3>
