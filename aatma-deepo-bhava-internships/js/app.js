@@ -105,6 +105,7 @@ class AatmaDeepoApp {
     this.isAdminLoggedIn = false;
     this.currentUser = null;
     this.adminAccounts = [];
+    this.authReturnFocus = null;
 
     this.init();
   }
@@ -113,12 +114,17 @@ class AatmaDeepoApp {
     this.renderDomains('all');
     this.renderStudentSelector();
     this.renderStudentDashboard();
+
+    const authGate = document.getElementById('auth-gate');
+    authGate?.addEventListener('click', event => this.handleAuthBackdropClick(event));
+    document.addEventListener('keydown', event => this.handleAuthKeydown(event));
+
     try {
       const response = await fetch('/api/auth/session', { credentials: 'same-origin' });
       const payload = await response.json();
       if (payload.user) await this.enterAuthenticatedSite(payload.user);
     } catch {
-      this.showAuthMessage('The secure login service is unavailable. Please open this site through its server URL.', 'error');
+      this.showToast('The sign-in service is temporarily unavailable.', 'error');
     }
   }
 
@@ -142,6 +148,11 @@ class AatmaDeepoApp {
   }
 
   showAuthMode(mode) {
+    const gate = document.getElementById('auth-gate');
+    if (!gate) return;
+
+    if (gate.hidden) this.authReturnFocus = document.activeElement;
+
     const register = mode === 'register';
     const admin = mode === 'admin';
     document.getElementById('auth-user-panel').hidden = admin;
@@ -152,11 +163,66 @@ class AatmaDeepoApp {
     document.getElementById('auth-register-tab').classList.toggle('active', register);
     document.getElementById('auth-login-tab').setAttribute('aria-selected', String(!register && !admin));
     document.getElementById('auth-register-tab').setAttribute('aria-selected', String(register));
-    document.getElementById('auth-title').textContent = admin ? 'Admin Login' : register ? 'Create your account' : 'Welcome back';
+    document.getElementById('auth-title').textContent = admin ? 'Admin Login' : register ? 'Start your journey' : 'Welcome back';
     document.getElementById('auth-description').textContent = admin
       ? 'Sign in with your site owner configured credentials.'
-      : register ? 'Create your account to get started.' : 'Sign in to explore your internship opportunities.';
+      : register ? 'Create your account and start building real-world experience.' : 'Sign in to explore your internship opportunities.';
+
+    gate.hidden = false;
+    gate.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('auth-modal-open');
     this.showAuthMessage('');
+
+    const firstFieldId = admin ? 'auth-admin-username' : register ? 'auth-register-name' : 'auth-login-email';
+    window.requestAnimationFrame(() => document.getElementById(firstFieldId)?.focus());
+  }
+
+  closeAuthModal({ restoreFocus = true } = {}) {
+    const gate = document.getElementById('auth-gate');
+    if (!gate) return;
+
+    const wasOpen = !gate.hidden;
+    gate.hidden = true;
+    gate.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('auth-modal-open');
+    this.showAuthMessage('');
+
+    const returnFocus = this.authReturnFocus;
+    this.authReturnFocus = null;
+    if (restoreFocus && wasOpen && returnFocus?.isConnected) returnFocus.focus();
+  }
+
+  handleAuthBackdropClick(event) {
+    if (event.target === event.currentTarget) this.closeAuthModal();
+  }
+
+  handleAuthKeydown(event) {
+    const gate = document.getElementById('auth-gate');
+    if (!gate || gate.hidden) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeAuthModal();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = Array.from(gate.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(element => !element.closest('[hidden]') && element.getClientRects().length > 0);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !gate.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !gate.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   async postAuth(path, values) {
@@ -198,6 +264,7 @@ class AatmaDeepoApp {
       this.data.students = [];
       this.activeStudentId = null;
     }
+    this.closeAuthModal({ restoreFocus: false });
     document.body.classList.add('authenticated');
     this.renderStudentSelector();
     this.renderStudentDashboard();
@@ -277,17 +344,22 @@ class AatmaDeepoApp {
       this.adminAccounts = [];
       this.data.students = [];
       this.activeStudentId = null;
+      this.closeAuthModal({ restoreFocus: false });
       document.body.classList.remove('authenticated');
       const adminModal = document.getElementById('modal-admin-dashboard');
       if (adminModal) adminModal.classList.remove('active');
       const adminHost = document.getElementById('admin-dashboard-host');
       if (adminHost) adminHost.replaceChildren();
-      this.showAuthMode('login');
+      this.showAuthMessage('');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
   showSection(viewId, targetElementId = null) {
+    if (viewId === 'student-zone' && !this.currentUser) {
+      this.showToast('Log in or register to open your student portal.', 'info');
+      return;
+    }
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
 
@@ -308,6 +380,9 @@ class AatmaDeepoApp {
 
     const mobileMenu = document.getElementById('nav-links');
     if (mobileMenu) mobileMenu.classList.remove('active');
+    const menuToggle = document.querySelector('.mobile-toggle');
+    menuToggle?.setAttribute('aria-expanded', 'false');
+    menuToggle?.setAttribute('aria-label', 'Open menu');
   }
 
   scrollToSection(secId) {
@@ -316,7 +391,11 @@ class AatmaDeepoApp {
 
   toggleMobileMenu() {
     const menu = document.getElementById('nav-links');
-    if (menu) menu.classList.toggle('active');
+    if (!menu) return;
+    const expanded = menu.classList.toggle('active');
+    const toggle = document.querySelector('.mobile-toggle');
+    toggle?.setAttribute('aria-expanded', String(expanded));
+    toggle?.setAttribute('aria-label', expanded ? 'Close menu' : 'Open menu');
   }
 
   renderDomains(category = 'all', searchQuery = '') {
@@ -346,7 +425,7 @@ class AatmaDeepoApp {
           <div class="internship-meta"><span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${domain.location}</span><span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${domain.duration}</span></div>
           <div class="internship-tags">${domain.tags.map(tag => `<span class="badge badge-purple">${tag}</span>`).join('')}</div>
         </div>
-        <div class="internship-card-footer"><span class="internship-price">₹${domain.price}</span><button class="btn btn-purple btn-sm" onclick="app.openRegisterModal('${domain.title}')">Apply Now</button></div>
+        <div class="internship-card-footer"><span class="internship-price">₹${domain.price}</span><button class="btn btn-purple btn-sm" onclick="app.applyForInternship('${domain.title}')">Apply Now</button></div>
       </article>
     `).join('') : '<p class="catalog-empty">No internships match your search. Try another keyword or category.</p>';
   }
@@ -374,6 +453,14 @@ class AatmaDeepoApp {
   // ==========================================
   // INTERNSHIP REGISTRATION
   // ==========================================
+  applyForInternship(preselectDomain = null) {
+    if (!this.currentUser) {
+      this.showToast('Log in or register to apply for an internship.', 'info');
+      return;
+    }
+    return this.openRegisterModal(preselectDomain);
+  }
+
   openRegisterModal(preselectDomain = null) {
     if (!this.currentUser) {
       this.showAuthMode('register');
