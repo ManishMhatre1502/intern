@@ -174,8 +174,9 @@ async function verifyCapturedRazorpayPayment(paymentId, expectedOrderId) {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret || !paymentId) throw Object.assign(new Error('Payment verification could not be completed.'), { status: 503 });
-  const response = await fetch(\`https://api.razorpay.com/v1/payments/\${encodeURIComponent(paymentId)}\`, {
-    headers: { Authorization: \`Basic \${Buffer.from(\`\${keyId}:\${keySecret}\`).toString('base64')}\` }
+  const url = 'https://api.razorpay.com/v1/payments/' + encodeURIComponent(paymentId);
+  const response = await fetch(url, {
+    headers: { Authorization: 'Basic ' + Buffer.from(keyId + ':' + keySecret).toString('base64') }
   });
   const payment = await response.json().catch(() => ({}));
   if (!response.ok || payment.order_id !== expectedOrderId || payment.status !== 'captured' ||
