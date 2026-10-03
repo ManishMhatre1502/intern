@@ -167,7 +167,7 @@ async function sendCompletionDocuments({ enrollment, student, includeCompletion 
     : includeAppreciation ? 'your Appreciation Letter' : 'your Internship Completion Certificate';
   await sendEmail({
     to: student.email,
-    subject: `${includeAppreciation ? 'Appreciation and completion documents' : 'Internship Completion Certificate'} — ${enrollment.title}`,
+    subject: `${includeCompletion && includeAppreciation ? 'Appreciation and completion documents' : includeAppreciation ? 'Appreciation Letter' : 'Internship Completion Certificate'} — ${enrollment.title}`,
     text: `Dear ${student.name},\n\nPlease find attached ${documentNames}.\n\nRegards,\n${issuerDetails().name}`,
     html: `<p>Dear ${escapeHtml(student.name)},</p><p>Please find attached ${escapeHtml(documentNames)}.</p><p>Regards,<br>${escapeHtml(issuerDetails().name)}</p>`,
     attachments
