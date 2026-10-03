@@ -169,6 +169,22 @@ async function createRazorpayOrder(enrollment, account) {
   return { id: result.id, amount: result.amount, currency: result.currency };
 }
 
+
+async function verifyCapturedRazorpayPayment(paymentId, expectedOrderId) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret || !paymentId) throw Object.assign(new Error('Payment verification could not be completed.'), { status: 503 });
+  const response = await fetch(\`https://api.razorpay.com/v1/payments/\${encodeURIComponent(paymentId)}\`, {
+    headers: { Authorization: \`Basic \${Buffer.from(\`\${keyId}:\${keySecret}\`).toString('base64')}\` }
+  });
+  const payment = await response.json().catch(() => ({}));
+  if (!response.ok || payment.order_id !== expectedOrderId || payment.status !== 'captured' ||
+      payment.amount !== INTERNSHIP_FEE_PAISE || payment.currency !== 'INR') {
+    throw Object.assign(new Error('Payment is not captured for this enrollment yet.'), { status: 409 });
+  }
+  return payment;
+}
+
 async function issueOfferLetter(enrollmentId) {
   const { accounts, enrollments } = await getCollections();
   const now = new Date();
@@ -454,6 +470,7 @@ async function handleApi(req, res, url) {
     if (!process.env.RAZORPAY_KEY_SECRET || !timingSafeTextMatch(expected, signature)) {
       return sendJson(res, 400, { error: 'Payment verification failed. Contact support before retrying payment.' });
     }
+    await verifyCapturedRazorpayPayment(paymentId, orderId);
     const updated = await markEnrollmentPaid(enrollment, paymentId);
     return sendJson(res, 200, {
       enrollment: updated,
@@ -492,7 +509,9 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'POST' && url.pathname === '/api/webhooks/google-forms') {
     const secret = process.env.GOOGLE_FORMS_WEBHOOK_SECRET;
-    if (!secret || !timingSafeTextMatch(String(req.headers.authorization || '').replace(/^Bearer\\s+/i, ''), secret)) {
+    const authHeader = String(req.headers.authorization || '');
+    const presentedSecret = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : '';
+    if (!secret || !timingSafeTextMatch(presentedSecret, secret)) {
       return sendJson(res, 401, { error: 'Invalid task webhook authorization.' });
     }
     const body = await readJson(req);
@@ -502,7 +521,7 @@ async function handleApi(req, res, url) {
     const week = Number(body.week);
     const submissionUrl = String(body.submissionUrl || '').trim();
     const submittedAt = body.submittedAt ? new Date(body.submittedAt) : new Date();
-    if (!responseId || responseId.length > 180 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(studentEmail) ||
+    if (!responseId || responseId.length > 180 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail) ||
         !Number.isInteger(week) || week < 1 || week > 4 || !enrollmentId || enrollmentId.length > 80 ||
         !Number.isFinite(submittedAt.getTime()) || submissionUrl.length > 2048) {
       return sendJson(res, 400, { error: 'Provide a valid response ID, student email, enrollment ID, week 1-4, submission URL, and timestamp.' });
@@ -543,12 +562,12 @@ async function handleApi(req, res, url) {
     return sendJson(res, 201, { accepted: true, week, enrollmentId });
   }
 
-  const adminEnrollmentAction = /^\\/api\\/admin\\/enrollments\\/([^/]+)\\/(offer-letter|completion-certificate|appreciation-letter)$/.exec(url.pathname);
-  if (req.method === 'POST' && adminEnrollmentAction) {
+  const adminEnrollmentAction = url.pathname.split('/');
+  if (req.method === 'POST' && adminEnrollmentAction.length === 6 && adminEnrollmentAction[1] === 'api' && adminEnrollmentAction[2] === 'admin' && adminEnrollmentAction[3] === 'enrollments' && ['offer-letter', 'completion-certificate', 'appreciation-letter'].includes(adminEnrollmentAction[5])) {
     const session = await getSession(req);
     if (!session || session.role !== 'admin') return sendJson(res, 401, { error: 'Administrator access is required.' });
-    const enrollmentId = decodeURIComponent(adminEnrollmentAction[1]);
-    const action = adminEnrollmentAction[2];
+    const enrollmentId = decodeURIComponent(adminEnrollmentAction[4]);
+    const action = adminEnrollmentAction[5];
     const { enrollments } = await getCollections();
     const enrollment = await enrollments.findOne({ id: enrollmentId });
     if (!enrollment) return sendJson(res, 404, { error: 'Enrollment not found.' });
@@ -563,8 +582,8 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { sent: true, ...result });
   }
 
-  const taskReviewRoute = /^\\/api\\/admin\\/task-submissions\\/([^/]+)\\/review$/.exec(url.pathname);
-  if (req.method === 'PATCH' && taskReviewRoute) {
+  const taskReviewRoute = url.pathname.split('/');
+  if (req.method === 'PATCH' && taskReviewRoute.length === 6 && taskReviewRoute[1] === 'api' && taskReviewRoute[2] === 'admin' && taskReviewRoute[3] === 'task-submissions' && taskReviewRoute[5] === 'review') {
     const session = await getSession(req);
     if (!session || session.role !== 'admin') return sendJson(res, 401, { error: 'Administrator access is required.' });
     const body = await readJson(req);
@@ -574,7 +593,7 @@ async function handleApi(req, res, url) {
       return sendJson(res, 400, { error: 'Choose Approved or Needs changes and keep feedback under 2,000 characters.' });
     }
     const { taskSubmissions } = await getCollections();
-    const id = decodeURIComponent(taskReviewRoute[1]);
+    const id = decodeURIComponent(taskReviewRoute[4]);
     const result = await taskSubmissions.updateOne({ id }, {
       $set: { status, feedback, reviewedAt: new Date().toISOString(), reviewedBy: session.username }
     });
