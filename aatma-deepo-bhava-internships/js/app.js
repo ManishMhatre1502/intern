@@ -171,6 +171,11 @@ class AatmaDeepoApp {
     gate.hidden = false;
     gate.setAttribute('aria-hidden', 'false');
     document.body.classList.add('auth-modal-open');
+    const mobileMenu = document.getElementById('nav-links');
+    mobileMenu?.classList.remove('active');
+    const menuToggle = document.querySelector('.mobile-toggle');
+    menuToggle?.setAttribute('aria-expanded', 'false');
+    menuToggle?.setAttribute('aria-label', 'Open menu');
     this.showAuthMessage('');
 
     const firstFieldId = admin ? 'auth-admin-username' : register ? 'auth-register-name' : 'auth-login-email';
