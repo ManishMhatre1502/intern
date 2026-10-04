@@ -22,7 +22,7 @@ In Razorpay, configure a webhook at:
 
 `https://YOUR-PRODUCTION-DOMAIN/api/webhooks/razorpay`
 
-Set the webhook secret to the same `RAZORPAY_WEBHOOK_SECRET`. Subscribe to `payment.captured` and `order.paid`. Configure and test the endpoint with Razorpay test mode before enabling live payments.
+Set the webhook secret to the same `RAZORPAY_WEBHOOK_SECRET`. Subscribe to `payment.captured`, `payment.failed`, and `order.paid`. Configure and test the endpoint with Razorpay test mode before enabling live payments.
 
 ## Google Forms weekly submissions
 
