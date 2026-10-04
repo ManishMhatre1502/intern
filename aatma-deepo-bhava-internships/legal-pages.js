@@ -79,11 +79,12 @@ function renderLegalPage(pathname, { organization, contactEmail, website } = {})
   const page = pages[pathname] || pages['/privacy'];
   const brand = escapeHtml(organization || 'Aatma Deepo Bhava');
   const contact = escapeHtml(contactEmail || 'support@example.com');
-  const site = escapeHtml(website || '');
+  const site = String(website || '').replace(/\/$/, '');
+  const canonical = escapeHtml(site + pathname);
   const sections = page.sections.map(([heading, body]) => '<section><h2>' + heading + '</h2>' + body + '</section>').join('');
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' +
     escapeHtml(page.title) + ' | ' + brand + '</title><meta name="description" content="' + escapeHtml(page.description) +
-    '"><link rel="canonical" href="' + escapeHtml(pathname) + '"><link rel="icon" href="/assets/aatma-deepo-bhava-logo.png"><link rel="stylesheet" href="/css/style.css?v=razorpay-compliance-20261004"></head><body class="legal-page"><main class="legal-shell"><a class="legal-brand" href="/"><img src="/assets/aatma-deepo-bhava-logo.png" alt="" aria-hidden="true"><span>' + brand + '</span></a><article class="legal-card"><p class="legal-eyebrow">POLICIES &amp; TERMS</p><h1>' + escapeHtml(page.heading) + '</h1><p class="legal-intro">' + page.intro + '</p>' + sections + '<div class="legal-contact"><strong>Questions or requests?</strong><p>Email <a href="mailto:' + contact + '">' + contact + '</a>' + (site ? ' or visit <a href="' + site + '">' + site + '</a>.' : '.') + '</p></div></article>' + footer() + '</main></body></html>';
+    '"><link rel="canonical" href="' + canonical + '"><meta property="og:title" content="' + escapeHtml(page.title) + ' | ' + brand + '"><meta property="og:type" content="website"><link rel="icon" href="/assets/aatma-deepo-bhava-logo.png"><link rel="stylesheet" href="/css/style.css?v=razorpay-compliance-20261004"></head><body class="legal-page"><main class="legal-shell"><a class="legal-brand" href="/"><img src="/assets/aatma-deepo-bhava-logo.png" alt="" aria-hidden="true"><span>' + brand + '</span></a><article class="legal-card"><p class="legal-eyebrow">POLICIES &amp; TERMS</p><h1>' + escapeHtml(page.heading) + '</h1><p class="legal-intro">' + page.intro + '</p>' + sections + '<div class="legal-contact"><strong>Questions or requests?</strong><p>Email <a href="mailto:' + contact + '">' + contact + '</a>' + (site ? ' or visit <a href="' + site + '">' + site + '</a>.' : '.') + '</p></div></article>' + footer() + '</main></body></html>';
 }
 
 module.exports = { renderLegalPage, pages };
