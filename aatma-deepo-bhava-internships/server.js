@@ -307,6 +307,24 @@ async function handleApi(req, res, url) {
     return sendJson(res, 403, { error: 'Request origin rejected.' });
   }
 
+  const siteRoute = url.pathname.startsWith('/api/site/')
+    ? '/' + url.pathname.slice('/api/site/'.length)
+    : null;
+  if (req.method === 'GET' && siteRoute && LEGAL_PAGES[siteRoute]) {
+    const body = renderLegalPage(siteRoute, {
+      organization: process.env.ORGANIZATION_NAME,
+      contactEmail: process.env.ORGANIZATION_CONTACT_EMAIL,
+      website: process.env.ORGANIZATION_WEBSITE
+    });
+    return sendText(res, 200, body, 'text/html; charset=utf-8');
+  }
+  if (req.method === 'GET' && siteRoute === '/robots.txt') {
+    return sendText(res, 200, renderRobots(req), 'text/plain; charset=utf-8');
+  }
+  if (req.method === 'GET' && siteRoute === '/sitemap.xml') {
+    return sendText(res, 200, renderSitemap(req), 'application/xml; charset=utf-8');
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/auth/session') {
     const session = await getSession(req);
     if (!session) return sendJson(res, 200, { user: null });
