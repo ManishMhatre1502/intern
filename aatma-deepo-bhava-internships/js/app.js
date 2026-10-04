@@ -3,6 +3,7 @@
    ========================================================================== */
 
 const APP_STORAGE_KEY = 'AATMA_DEEPO_BHAVA_DATA_V4';
+const COOKIE_CONSENT_KEY = 'ADB_COOKIE_CONSENT_V1';
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 
 const DEFAULT_DOMAINS = [
@@ -116,6 +117,7 @@ class AatmaDeepoApp {
     this.renderDomains('all');
     this.renderStudentSelector();
     this.renderStudentDashboard();
+    this.initCookieConsent();
 
     const authGate = document.getElementById('auth-gate');
     authGate?.addEventListener('click', event => this.handleAuthBackdropClick(event));
@@ -311,7 +313,8 @@ class AatmaDeepoApp {
         name: document.getElementById('auth-register-name').value,
         email: document.getElementById('auth-register-email').value,
         mobile: document.getElementById('auth-register-mobile').value,
-        password
+        password,
+        website: document.getElementById('auth-register-website')?.value || ''
       });
       form.reset();
       this.showAuthMessage('');
@@ -561,7 +564,10 @@ class AatmaDeepoApp {
     let enrollment;
     let confirmation;
     try {
-      const order = await this.postAuth('/api/internships/enroll', { title: domain });
+      const order = await this.postAuth('/api/internships/enroll', {
+        title: domain,
+        website: document.getElementById('reg-website')?.value || ''
+      });
       const result = await this.completeRazorpayCheckout(order.checkout, order.enrollment.id);
       if (result.cancelled) {
         this.showToast('Payment was cancelled. No paid enrollment or offer letter has been issued.', 'info');
@@ -1141,6 +1147,38 @@ class AatmaDeepoApp {
       this.renderStudentDashboard();
       this.showToast(`Updated ${certKey.toUpperCase()} status for ${student.name}`, 'info');
     }
+  }
+
+  initCookieConsent() {
+    const banner = document.getElementById('cookie-consent');
+    if (!banner) return;
+    try {
+      if (!localStorage.getItem(COOKIE_CONSENT_KEY)) banner.hidden = false;
+    } catch {
+      banner.hidden = false;
+    }
+  }
+
+  saveCookieConsent(choice) {
+    try { localStorage.setItem(COOKIE_CONSENT_KEY, choice); } catch { /* Continue without optional storage. */ }
+    const banner = document.getElementById('cookie-consent');
+    if (banner) banner.hidden = true;
+  }
+
+  acceptCookies() {
+    const optional = document.getElementById('cookie-optional');
+    this.saveCookieConsent(optional?.checked ? 'accepted' : 'rejected');
+  }
+
+  rejectOptionalCookies() {
+    const optional = document.getElementById('cookie-optional');
+    if (optional) optional.checked = false;
+    this.saveCookieConsent('rejected');
+  }
+
+  toggleCookieSettings() {
+    const settings = document.getElementById('cookie-consent-settings');
+    if (settings) settings.hidden = !settings.hidden;
   }
 
   showToast(msg, type = 'info') {

@@ -22,7 +22,7 @@ In Razorpay, configure a webhook at:
 
 `https://YOUR-PRODUCTION-DOMAIN/api/webhooks/razorpay`
 
-Set the webhook secret to the same `RAZORPAY_WEBHOOK_SECRET`. Subscribe to `payment.captured` and `order.paid`. Configure and test the endpoint with Razorpay test mode before enabling live payments.
+Set the webhook secret to the same `RAZORPAY_WEBHOOK_SECRET`. Subscribe to `payment.captured`, `payment.failed`, and `order.paid`. Configure and test the endpoint with Razorpay test mode before enabling live payments.
 
 ## Google Forms weekly submissions
 
@@ -44,3 +44,22 @@ The webhook verifies the shared bearer token, matches the email and paid enrollm
 ## Admin review and documents
 
 Sign in with the configured admin account. The Weekly task review tab lists submissions by student, enrollment, and week; admins can approve a task or request changes with feedback. The documents tab only enables completion documents when all four weeks are approved and payment is confirmed. Granting appreciation sends the appreciation letter and, if not already sent, the completion certificate in the same email. Offer-letter delivery is flagged only after Resend accepts the email; if email setup is missing or fails, payment remains recorded and the admin can retry the offer letter from the documents tab.
+
+
+## Razorpay approval pages and route names
+
+The public site exposes these policy routes for payment review:
+
+- `/privacy`
+- `/return-policy`
+- `/refund-policy`
+- `/disclaimer`
+- `/terms`
+
+The footer links to each page. The payment implementation accepts these server routes:
+
+- `POST /api/razorpay/create-order` (also used internally as `/api/internships/enroll`)
+- `POST /api/razorpay/verify` (also available at `/api/payments/verify`)
+- `POST /api/razorpay/webhook` (also available at `/api/webhooks/razorpay`)
+
+Before submitting the site for approval, replace the fallback support email by configuring `ORGANIZATION_CONTACT_EMAIL`, confirm the cancellation/refund wording with the client, and make sure the live Razorpay account, website URL, support contact, and refund process match the business that will receive payments.

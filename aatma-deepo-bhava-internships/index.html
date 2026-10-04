@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aatma Deepo Bhava | Internship & Innovation Platform</title>
   <meta name="description" content="Be Your Own Light. We are not only providing Internships, but Future Innovators. Hands-on internships with weekly tasks, an offer letter after verified enrollment, and a completion certificate after approved work.">
+  <meta property="og:title" content="Aatma Deepo Bhava | Internship & Innovation Platform">
+  <meta property="og:description" content="Build practical skills through guided internships, weekly tasks, and verified recognition.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/assets/social-preview.svg">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="/assets/aatma-deepo-bhava-logo.png">
+  <link rel="apple-touch-icon" href="/assets/aatma-deepo-bhava-logo.png">
+  <link rel="manifest" href="/manifest.json">
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +62,7 @@
           <input id="auth-register-mobile" type="tel" autocomplete="tel" required>
           <label for="auth-register-password">Create Password</label>
           <input id="auth-register-password" type="password" autocomplete="new-password" minlength="10" required>
+          <label class="hp-field" aria-hidden="true">Website <input id="auth-register-website" type="text" tabindex="-1" autocomplete="off"></label>
           <label for="auth-register-confirm">Confirm Password</label>
           <input id="auth-register-confirm" type="password" autocomplete="new-password" minlength="10" required>
           <button class="btn btn-purple btn-block btn-lg auth-submit" type="submit">Start Your Journey <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
@@ -383,6 +392,7 @@
           <div class="form-group">
             <label>Contact Phone <span class="text-purple">*</span></label>
             <input type="tel" id="reg-phone" class="form-control" placeholder="+91 9876543210" required>
+            <label class="hp-field" aria-hidden="true">Website <input type="text" id="reg-website" tabindex="-1" autocomplete="off"></label>
           </div>
 
           <div class="form-group" id="reg-domain-group">
@@ -498,6 +508,14 @@
           <a href="#register" onclick="app.applyForInternship()">Apply for an internship</a>
           <a href="#logout" onclick="app.logout()">Sign out</a>
         </nav>
+        <nav class="footer-column" aria-label="Legal">
+          <h2>Legal</h2>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/return-policy">Return Policy</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/disclaimer">Disclaimer</a>
+          <a href="/terms">Terms &amp; Conditions</a>
+        </nav>
       </div>
       <div class="footer-bottom">
         <span>© 2026 Aatma Deepo Bhava. All rights reserved.</span>
@@ -505,6 +523,21 @@
       </div>
     </div>
   </footer>
+
+  <section class="cookie-consent" id="cookie-consent" role="dialog" aria-labelledby="cookie-consent-title" aria-describedby="cookie-consent-text" hidden>
+    <div>
+      <p class="cookie-consent-title" id="cookie-consent-title">Your privacy choices</p>
+      <p id="cookie-consent-text">We use an essential session cookie for sign-in. Optional analytics cookies are off by default.</p>
+      <div class="cookie-consent-settings" id="cookie-consent-settings" hidden>
+        <label><input type="checkbox" id="cookie-optional" checked> Allow optional analytics cookies</label>
+      </div>
+    </div>
+    <div class="cookie-consent-actions">
+      <button type="button" class="btn btn-sm btn-outline-purple" onclick="app.rejectOptionalCookies()">Reject optional</button>
+      <button type="button" class="btn btn-sm btn-light" onclick="app.toggleCookieSettings()">Manage</button>
+      <button type="button" class="btn btn-sm btn-purple" onclick="app.acceptCookies()">Accept selected</button>
+    </div>
+  </section>
 
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>

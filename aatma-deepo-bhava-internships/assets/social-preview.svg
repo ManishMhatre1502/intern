@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Aatma Deepo Bhava Internship Platform</title>
+  <desc id="desc">Build practical skills through guided internships and weekly tasks.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="36" fill="url(#bg)"/>
+  <circle cx="1000" cy="80" r="230" fill="#bfdbfe" opacity=".45"/>
+  <circle cx="90" cy="570" r="210" fill="#dbeafe" opacity=".8"/>
+  <rect x="100" y="115" width="112" height="112" rx="28" fill="url(#accent)"/>
+  <path d="M128 160h56l-9 20h-38zM132 190h48v10h-48z" fill="#fff" opacity=".95"/>
+  <text x="250" y="178" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#172554">Aatma Deepo Bhava</text>
+  <text x="104" y="330" font-family="Arial, sans-serif" font-size="66" font-weight="700" fill="#172554">Build your future</text>
+  <text x="104" y="405" font-family="Arial, sans-serif" font-size="66" font-weight="700" fill="#2563eb">through practical internships.</text>
+  <text x="106" y="480" font-family="Arial, sans-serif" font-size="28" fill="#53657e">Weekly tasks · Expert feedback · Verified recognition</text>
+</svg>

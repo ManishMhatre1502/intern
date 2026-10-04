@@ -1,0 +1,23 @@
+{
+  "name": "Aatma Deepo Bhava Internships",
+  "short_name": "Aatma Internships",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7faff",
+  "theme_color": "#2563eb",
+  "description": "Guided internships with weekly tasks and verified recognition.",
+  "icons": [
+    {
+      "src": "/assets/aatma-deepo-bhava-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/aatma-deepo-bhava-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

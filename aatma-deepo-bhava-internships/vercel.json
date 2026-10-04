@@ -4,5 +4,35 @@
     "api/**/*.js": {
       "includeFiles": "admin-dashboard.html"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/privacy",
+      "destination": "/api/site/privacy"
+    },
+    {
+      "source": "/return-policy",
+      "destination": "/api/site/return-policy"
+    },
+    {
+      "source": "/refund-policy",
+      "destination": "/api/site/refund-policy"
+    },
+    {
+      "source": "/disclaimer",
+      "destination": "/api/site/disclaimer"
+    },
+    {
+      "source": "/terms",
+      "destination": "/api/site/terms"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/site/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/site/sitemap.xml"
+    }
+  ]
 }
