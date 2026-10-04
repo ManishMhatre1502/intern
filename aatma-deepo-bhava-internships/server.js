@@ -6,12 +6,14 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { getCollections, findSession, removeSession, rateLimitExceeded, saveSession } = require('./storage');
 const { sendOfferLetter, sendCompletionDocuments } = require('./documents');
+const { renderLegalPage, pages: LEGAL_PAGES } = require('./legal-pages');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const cookieName = 'adb_session';
 const production = process.env.NODE_ENV === 'production';
+const transportSecurityHeaders = production ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' } : {};
 
 function loadLocalEnvironment() {
   let contents;
@@ -38,6 +40,7 @@ function sendJson(res, status, payload, headers = {}) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    ...transportSecurityHeaders,
     ...headers
   });
   res.end(JSON.stringify(payload));
@@ -410,12 +413,16 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { user: { role: 'admin', username: configuredUsername } });
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/internships/enroll') {
+  if (req.method === 'POST' && ['/api/internships/enroll', '/api/razorpay/create-order'].includes(url.pathname)) {
     const session = await getSession(req);
     if (!session || session.role !== 'user') {
       return sendJson(res, 401, { error: 'Please sign in with a student account before applying.' });
     }
+    if (await rateLimitExceeded(req, 'enroll')) {
+      return sendJson(res, 429, { error: 'Too many enrollment attempts. Try again later.' });
+    }
     const body = await readJson(req);
+    if (String(body.website || '').trim()) return sendJson(res, 400, { error: 'Enrollment could not be submitted.' });
     const title = String(body.title || '').trim();
     if (title.length < 2 || title.length > 160) {
       return sendJson(res, 400, { error: 'Choose a valid internship or course.' });
@@ -456,7 +463,7 @@ async function handleApi(req, res, url) {
     });
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/payments/verify') {
+  if (req.method === 'POST' && ['/api/payments/verify', '/api/razorpay/verify'].includes(url.pathname)) {
     const session = await getSession(req);
     if (!session || session.role !== 'user') return sendJson(res, 401, { error: 'Please sign in before confirming payment.' });
     const body = await readJson(req);
@@ -480,7 +487,7 @@ async function handleApi(req, res, url) {
     });
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/webhooks/razorpay') {
+  if (req.method === 'POST' && ['/api/webhooks/razorpay', '/api/razorpay/webhook'].includes(url.pathname)) {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret) return sendJson(res, 503, { error: 'Payment webhook is not configured.' });
     const raw = await readRawBody(req);
@@ -612,7 +619,8 @@ async function handleApi(req, res, url) {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY'
+      'X-Frame-Options': 'DENY',
+      ...transportSecurityHeaders
     });
     return res.end(dashboard);
   }
@@ -696,7 +704,7 @@ async function handleApi(req, res, url) {
 
 const allowedFile = pathname => {
   if (pathname === '/' || pathname === '/index.html') return path.join(ROOT, 'index.html');
-  if (/^\/(css\/style\.css|js\/app\.js|hero_student\.png)$/.test(pathname)) {
+  if (/^\/(css\/style\.css|js\/app\.js|hero_student\.png|manifest\.json)$/.test(pathname)) {
     return path.join(ROOT, pathname.slice(1));
   }
   if (/^\/assets\/[a-zA-Z0-9._-]+\.(png|jpg|jpeg|webp|svg)$/.test(pathname)) {
@@ -713,7 +721,7 @@ async function serveStatic(req, res, pathname) {
     const ext = path.extname(file).toLowerCase();
     const contentType = {
       '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
-      '.js': 'text/javascript; charset=utf-8', '.png': 'image/png',
+      '.js': 'text/javascript; charset=utf-8', '.json': 'application/manifest+json; charset=utf-8', '.png': 'image/png',
       '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
       '.svg': 'image/svg+xml'
     }[ext] || 'application/octet-stream';
@@ -722,6 +730,7 @@ async function serveStatic(req, res, pathname) {
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'same-origin',
       'X-Frame-Options': 'DENY',
+      ...transportSecurityHeaders,
       'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=3600'
     });
     return res.end(req.method === 'HEAD' ? undefined : body);
@@ -730,10 +739,49 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
+function requestBaseUrl(req) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const protocol = production ? 'https' : (forwardedProto || 'http');
+  return `${protocol}://${req.headers.host || 'localhost'}`;
+}
+
+function sendText(res, status, body, contentType) {
+  res.writeHead(status, { 'Content-Type': contentType, 'Cache-Control': 'no-store', ...transportSecurityHeaders });
+  res.end(body);
+}
+
+function renderRobots(req) {
+  const base = requestBaseUrl(req);
+  return `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin-dashboard.html\nSitemap: ${base}/sitemap.xml\n`;
+}
+
+function renderSitemap(req) {
+  const base = requestBaseUrl(req);
+  const routes = ['/', '/privacy', '/return-policy', '/refund-policy', '/disclaimer', '/terms'];
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map(route => `<url><loc>${base}${route}</loc></url>`).join('')}</urlset>`;
+}
+
 async function requestHandler(req, res) {
   try {
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const url = new URL(req.url, requestBaseUrl(req));
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    if (production && forwardedProto && forwardedProto !== 'https') {
+      res.writeHead(308, { Location: `https://${req.headers.host}${req.url}`, ...transportSecurityHeaders });
+      return res.end();
+    }
     if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      if (LEGAL_PAGES[url.pathname]) {
+        const body = renderLegalPage(url.pathname, {
+          organization: process.env.ORGANIZATION_NAME,
+          contactEmail: process.env.ORGANIZATION_CONTACT_EMAIL,
+          website: process.env.ORGANIZATION_WEBSITE
+        });
+        return sendText(res, 200, req.method === 'HEAD' ? '' : body, 'text/html; charset=utf-8');
+      }
+      if (url.pathname === '/robots.txt') return sendText(res, 200, req.method === 'HEAD' ? '' : renderRobots(req), 'text/plain; charset=utf-8');
+      if (url.pathname === '/sitemap.xml') return sendText(res, 200, req.method === 'HEAD' ? '' : renderSitemap(req), 'application/xml; charset=utf-8');
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return sendJson(res, 405, { error: 'Method not allowed.' });
     }
