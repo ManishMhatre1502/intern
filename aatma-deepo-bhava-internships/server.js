@@ -522,6 +522,9 @@ async function handleApi(req, res, url) {
     } else if (event.event === 'order.paid') {
       orderId = event.payload?.order?.entity?.id || '';
       paymentId = event.payload?.payment?.entity?.id || '';
+    } else if (event.event === 'payment.failed') {
+      orderId = event.payload?.payment?.entity?.order_id || '';
+      paymentId = event.payload?.payment?.entity?.id || '';
     } else {
       return sendJson(res, 200, { received: true, ignored: true });
     }
@@ -529,6 +532,13 @@ async function handleApi(req, res, url) {
     const { enrollments } = await getCollections();
     const enrollment = await enrollments.findOne({ razorpayOrderId: orderId });
     if (!enrollment) return sendJson(res, 200, { received: true, ignored: true });
+    if (event.event === 'payment.failed') {
+      const reason = String(event.payload?.payment?.entity?.error_description || 'Payment failed').slice(0, 500);
+      await enrollments.updateOne({ id: enrollment.id, paymentStatus: { $ne: 'Paid' } }, {
+        $set: { paymentStatus: 'Failed', razorpayPaymentId: paymentId, paymentFailureReason: reason, paymentFailedAt: new Date().toISOString() }
+      });
+      return sendJson(res, 200, { received: true, failed: true });
+    }
     await markEnrollmentPaid(enrollment, paymentId || 'captured');
     return sendJson(res, 200, { received: true });
   }
