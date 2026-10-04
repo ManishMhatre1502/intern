@@ -2138,3 +2138,7 @@ body:not(.authenticated) .footer-column a[href="#logout"] { display: none; }
   .legal-card { border-radius: 18px; }
   .legal-footer { gap: .65rem 1rem; }
 }
+
+.admin-legal-links { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; padding: .8rem 1.25rem; border-top: 1px solid #e3eaf4; background: #f8fbff; }
+.admin-legal-links a { color: #31598f; font-size: .78rem; text-decoration: none; }
+.admin-legal-links a:hover { color: #1d4ed8; text-decoration: underline; }
